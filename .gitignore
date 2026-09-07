@@ -1,0 +1,62 @@
+## ====================================================================
+## Parcel Builder - Standard .gitignore
+## Excludes build outputs, local IDE configs, OS files, and cache
+## Preserves project source files and the final AddInPackage output (.esriAddinX)
+## ====================================================================
+
+# Build & Compilation outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio & IDE local caches
+.vs/
+.vscode/
+.idea/
+*.user
+*.userprefs
+*.usertasks
+*.suo
+*.sln.docstates
+*.DotSettings.user
+
+# AI & Agent local caches
+.agents/
+.gemini/
+scratch/
+
+# Test Results & Code Coverage
+[Tt]est[Rr]esult*/
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet & Package caches
+*.nuget.props
+*.nuget.targets
+packages/
+project.lock.json
+
+# ArcGIS Pro runtime locks & temp files
+*.lock
+*.sr.lock
+*.tmp
+*.temp
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Windows crash dumps & crash logs
+*.dmp
+*.crash
+
+# Keep the final distribution Add-in package (.esriAddinX)
+!AddInPackage/
+!AddInPackage/ParcelBuilder.esriAddinX

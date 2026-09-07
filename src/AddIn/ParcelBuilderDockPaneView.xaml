@@ -1,0 +1,1449 @@
+<UserControl x:Class="ParcelBuilder.AddIn.ParcelBuilderDockPaneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ParcelBuilder.AddIn"
+             xmlns:controls="clr-namespace:ParcelBuilder.AddIn.Controls"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             d:DesignHeight="950" d:DesignWidth="1100"
+             FlowDirection="{Binding FlowDirection}"
+             Background="#0B132B" Foreground="#E0E6ED"
+             FontFamily="Segoe UI">
+
+    <UserControl.Resources>
+        <!-- Card Container Style -->
+        <Style x:Key="CardPanel" TargetType="Border">
+            <Setter Property="Background" Value="#131C38"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="#1C2B54"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- Option Selection Card Style -->
+        <Style x:Key="OptionCard" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="#111A33" BorderBrush="#1C2B54" BorderThickness="1.5" CornerRadius="8" Padding="14,12" Margin="0,0,0,10" Cursor="Hand">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="radioCircle" Grid.Column="0" Width="18" Height="18" CornerRadius="9" BorderBrush="#3D507A" BorderThickness="2" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Ellipse x:Name="radioDot" Width="8" Height="8" Fill="#00E5FF" Visibility="Collapsed"/>
+                                </Border>
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="checkIcon" Grid.Column="2" Text="✓" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Visibility="Collapsed" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#00E5FF"/>
+                                <Setter TargetName="border" Property="Background" Value="#16294D"/>
+                                <Setter TargetName="radioCircle" Property="BorderBrush" Value="#00E5FF"/>
+                                <Setter TargetName="radioDot" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="checkIcon" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#192447"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Dark TextBox Style -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#0C152E"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#1C2B54"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Stepper Button Style -->
+        <Style x:Key="StepNavButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#8E9CB2"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#172445"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Boolean to Visibility Converters -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Top Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Stepper + Form Workstation -->
+            <RowDefinition Height="*"/>
+            <!-- Progress Notification Bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Bottom Footer Navigation Bar -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. TOP HEADER BAR -->
+        <Border Grid.Row="0" Background="#0E1736" BorderBrush="#1C2B54" BorderThickness="0,0,0,1" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#00BFA5" CornerRadius="6" Width="28" Height="28" Margin="0,0,12,0">
+                        <TextBlock Text="❖" Foreground="#0B132B" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="Parcel Builder Workstation" FontWeight="Bold" FontSize="15" Foreground="#FFFFFF"/>
+                        <TextBlock Text="Create blocks from parameters or extract from GIS parcels" FontSize="11" Foreground="#7A8CA5"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#131F3F" BorderBrush="#1C2B54" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox IsChecked="{Binding IsLivePreviewEnabled}" VerticalAlignment="Center" Margin="0,0,6,0" Cursor="Hand"/>
+                            <TextBlock Text="Map Overlay" FontSize="10" FontWeight="SemiBold" Foreground="#8E9CB2" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#172445" CornerRadius="12" Padding="4,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Command="{Binding SetEnglishCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="6,2">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <TextBlock Text="EN" FontSize="11" FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEnglish}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
+
+                            <TextBlock Text="|" Foreground="#415273" VerticalAlignment="Center" Margin="2,0"/>
+
+                            <Button Command="{Binding SetArabicCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="6,2">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <TextBlock Text="العربية" FontSize="11" FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsArabic}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. MAIN SPLIT WORKSTATION (STEPPER SIDEBAR + ACTIVE STEP FORM) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- Left Stepper Navigation Sidebar -->
+                <ColumnDefinition Width="250"/>
+                <!-- Divider -->
+                <ColumnDefinition Width="1"/>
+                <!-- Right Step Form Area -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT STEPPER SIDEBAR WITH DYNAMIC HIGHLIGHTS -->
+            <Border Grid.Column="0" Background="#0C152E" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="STEPPER WORKFLOW" FontWeight="Bold" FontSize="10" Foreground="#526482" Margin="4,0,0,8"/>
+
+                        <!-- Step 1 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>1</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep1}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="1" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep1}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Base Dimensions" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep1}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 2 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>2</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep2}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="2" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep2}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Relationship" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep2}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 3 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>3</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep3}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="3" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep3}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Arrangement" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep3}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 4 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>4</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep4}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="4" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep4}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Parcel Count" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep4}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 5 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>5</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep5}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="5" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep5}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Similarity" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep5}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 6 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>6</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep6}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="6" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep6}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Exceptions" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep6}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 7 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>7</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep7}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="7" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep7}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Corner &amp; Chamfer" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep7}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 8 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>8</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep8}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="8" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep8}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Alignment" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep8}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 9 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>9</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep9}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="9" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep9}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Dynamic Preview" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep9}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 10 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>10</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep10}" Value="True">
+                                                    <Setter Property="Background" Value="#00E5FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="10" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep10}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Validation Rules" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep10}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00E5FF"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 11 -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>11</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep11}" Value="True">
+                                                    <Setter Property="Background" Value="#00BFA5"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="11" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep11}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="Final Review &amp; Output" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#8E9CB2"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep11}" Value="True">
+                                                    <Setter Property="Foreground" Value="#00BFA5"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Vertical Separator -->
+            <Rectangle Grid.Column="1" Fill="#1C2B54"/>
+
+            <!-- RIGHT STEP FORM WORKSPACE -->
+            <ScrollViewer Grid.Column="2" Padding="24,18" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Active Step Title Banner -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="{Binding StepTitle}" FontWeight="Bold" FontSize="18" Foreground="#FFFFFF"/>
+                        <TextBlock Text="{Binding StepSubtitle}" FontSize="12" Foreground="#8E9CB2" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- STEP 1: BASE DIMENSIONS & EXTRACTION START -->
+                    <StackPanel Visibility="{Binding IsStep1, Converter={StaticResource BoolToVis}}">
+                        <!-- Extracted Source Audit Banner (when extracted) -->
+                        <Border Background="#162547" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12" Visibility="{Binding IsExtractedMode, Converter={StaticResource BoolToVis}}">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Source GIS Extraction Detected" FontWeight="Bold" FontSize="11" Foreground="#00E5FF"/>
+                                    <TextBlock Text="{Binding SourceParcelId, StringFormat='{}Source Parcel ID: {0}'}" FontSize="10" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="{Binding ExtractionConfidence}" FontSize="10" Foreground="#8E9CB2"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DetectedFrontage, StringFormat='{}Detected: {0:F2} m × '}" FontSize="10" Foreground="#7A8CA5"/>
+                                    <TextBlock Text="{Binding DetectedDepth, StringFormat='{}{0:F2} m'}" FontSize="10" Foreground="#7A8CA5"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Standard Dimensions Input Card -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Working Base Dimensions" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Frontage Input -->
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Frontage Width (meters)" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding BaseFrontage, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBlock Text="✕ Frontage must be greater than 0" Foreground="#FF5252" FontSize="10" Margin="0,4,0,0" Visibility="{Binding HasFrontageError, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+
+                                    <!-- Depth Input -->
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Depth Length (meters)" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding BaseDepth, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBlock Text="✕ Depth must be greater than 0" Foreground="#FF5252" FontSize="10" Margin="0,4,0,0" Visibility="{Binding HasDepthError, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Calculated Base Area Metric -->
+                                <Border Background="#0C152E" CornerRadius="6" Padding="12" BorderBrush="#1C2B54" BorderThickness="1">
+                                    <Grid>
+                                        <TextBlock Text="Calculated Base Area" Foreground="#8E9CB2" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding BaseArea, StringFormat='{}{0:N0} m²'}" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Interactive Map Extraction Card -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Extract from GIS Map Parcel" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,6,6"/>
+                                <TextBlock Text="Click an existing parcel boundary on the active map to automatically extract dimensions, analyze surrounding context, and infer the block layout." FontSize="11" Foreground="#8E9CB2" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                <Button Content="📍 Select Parcel on Active Map" Command="{Binding SelectOnMapCommand}" Background="#173160" Foreground="#00E5FF" FontWeight="SemiBold" Padding="14,8" BorderThickness="0" HorizontalAlignment="Left" Cursor="Hand"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 2: RELATIONSHIP TYPE -->
+                    <StackPanel Visibility="{Binding IsStep2, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Select Relationship Type" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,14"/>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding IsPartOfBlock, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="Part of a Block" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Parcel belongs to a larger block or subdivision row with synchronized alignment." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding IsStandalone, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="Standalone Parcel" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Single isolated lot with independent spatial geometry." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 3: BLOCK ARRANGEMENT -->
+                    <StackPanel Visibility="{Binding IsStep3, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Block Layout Structure" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,14"/>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding IsBackToBack, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="Back-to-Back (Dual Row)" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Two parallel rows of parcels (Side A and Side B) sharing a common rear boundary spine." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding IsSingleSided, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="Single-Sided (Single Row)" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="One linear strip of parcels fronting a single access road." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 4: PARCEL COUNT -->
+                    <StackPanel Visibility="{Binding IsStep4, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Parcel Count Configuration" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,14"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Side A Parcel Count" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SideACount, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Visibility="{Binding IsBackToBack, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Side B Parcel Count" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SideBCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 5: SIMILARITY -->
+                    <StackPanel Visibility="{Binding IsStep5, Converter={StaticResource BoolToVis}}">
+                        <!-- Uniformity Selector Card -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Dimension Uniformity" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,14"/>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding IsAllIdentical, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="All Parcels Identical" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Every parcel inherits standard base dimensions." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+
+                                <RadioButton Style="{StaticResource OptionCard}" IsChecked="{Binding HasExceptions, Mode=TwoWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="Some Parcels Different (Has Exceptions)" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Explicit dimension overrides for irregular lots or corners." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- UPPER RECTANGLE: DIMENSIONS & PARCEL OVERRIDE CONTROLS -->
+                        <Border Style="{StaticResource CardPanel}" Visibility="{Binding HasExceptions, Converter={StaticResource BoolToVis}}" BorderBrush="#1C2B54" BorderThickness="1.2">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="📐 Dimension Overrides — Selected Parcel: " FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                        <Border Background="#16294D" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="4,0,0,0">
+                                            <TextBlock Text="{Binding SelectedParcelId}" Foreground="#00E5FF" FontWeight="Bold" FontSize="12"/>
+                                        </Border>
+                                        <Border Background="#172445" CornerRadius="4" Padding="6,2" Margin="6,0,0,0">
+                                            <TextBlock Text="{Binding SelectedParcelSide}" Foreground="#29B6F6" FontWeight="SemiBold" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Action Buttons -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="↺ Reset Parcel" Command="{Binding ResetSelectedParcelToStandardCommand}" Background="#1E2842" Foreground="#8E9CB2" FontSize="10" Padding="8,4" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand" ToolTip="Reset selected parcel to standard dimensions"/>
+                                        <Button Content="+ Add Exception" Command="{Binding AddExceptionCommand}" Background="#173160" Foreground="#00E5FF" FontSize="10" FontWeight="SemiBold" Padding="8,4" BorderThickness="0" Cursor="Hand"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Editable Dimensions Fields -->
+                                <Grid Margin="0,4,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Frontage -->
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Frontage (m)" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SelectedParcelCustomFrontage, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+
+                                    <!-- Depth -->
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Depth (m)" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SelectedParcelCustomDepth, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+
+                                    <!-- Area Calculation -->
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="Calculated Area" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,4"/>
+                                        <Border Background="#0C152E" BorderBrush="#1C2B54" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                            <TextBlock Text="{Binding SelectedParcelArea, StringFormat='{}{0:N0} m²'}" FontWeight="Bold" FontSize="12" Foreground="#00BFA5"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Status / Type Badge -->
+                                    <StackPanel Grid.Column="6" VerticalAlignment="Bottom">
+                                        <Border CornerRadius="6" Padding="10,8" Margin="0,0,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#111F38"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelectedParcelModified}" Value="True">
+                                                            <Setter Property="Background" Value="#3D2914"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Standard"/>
+                                                        <Setter Property="Foreground" Value="#8E9CB2"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelectedParcelModified}" Value="True">
+                                                                <Setter Property="Text" Value="✏ Modified"/>
+                                                                <Setter Property="Foreground" Value="#FF9100"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- LOWER RECTANGLE: VISUAL PARCELS LAYOUT & INTERACTIVE SELECTION -->
+                        <Border Style="{StaticResource CardPanel}" Visibility="{Binding HasExceptions, Converter={StaticResource BoolToVis}}" BorderBrush="#00E5FF" BorderThickness="1">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="🗺 Visual Parcel Layout &amp; Selection" FontWeight="Bold" FontSize="13" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Click any parcel below to inspect and override dimensions" FontSize="10" Foreground="#8E9CB2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Vector Schematic Canvas -->
+                                <Border Background="#091024" CornerRadius="6" Padding="4" BorderBrush="#1C2B54" BorderThickness="1" Height="150" Margin="0,0,0,10">
+                                    <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}"/>
+                                </Border>
+
+                                <!-- Horizontal Parcel Selection Chips -->
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding AllGeneratedParcels}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding DataContext.SelectParcelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Id}"
+                                                        Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,6,0" Cursor="Hand">
+                                                    <Border Background="#111A33" BorderBrush="#1C2B54" BorderThickness="1" CornerRadius="6" Padding="8,4" MinWidth="55">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding Id}" FontWeight="Bold" FontSize="10" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding Frontage, StringFormat='{}{0:F0}m'}" FontSize="9" Foreground="#8E9CB2" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 6: EXCEPTIONS & OVERRIDES -->
+                    <StackPanel Visibility="{Binding IsStep6, Converter={StaticResource BoolToVis}}">
+                        <!-- TOP PANEL: EXCEPTION EDITORS -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Custom Parcel Exceptions &amp; Dimensional Overrides" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="Set custom frontage width or depth overrides for specific parcels." FontSize="11" Foreground="#8E9CB2" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <Button Content="+ Add Custom Exception" Command="{Binding AddExceptionCommand}" Background="#173160" Foreground="#00E5FF" FontWeight="SemiBold" Padding="12,6" BorderThickness="0" HorizontalAlignment="Right" Cursor="Hand"/>
+                                </Grid>
+
+                                <!-- Items of Exceptions -->
+                                <ItemsControl ItemsSource="{Binding ExceptionsList}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0C152E" CornerRadius="8" Padding="12,10" Margin="0,0,0,8" BorderBrush="#1C2B54" BorderThickness="1.2">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Side Badge -->
+                                                    <Border Grid.Column="0" Background="#16294D" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="8,4" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                        <TextBlock Text="{Binding Side}" Foreground="#00E5FF" FontWeight="Bold" FontSize="11"/>
+                                                    </Border>
+
+                                                    <!-- Sequence Number -->
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+                                                        <TextBlock Text="Parcel #" Foreground="#8E9CB2" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                        <TextBox Style="{StaticResource DarkTextBox}" Width="55" HorizontalContentAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" Text="{Binding Sequence, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    </StackPanel>
+
+                                                    <!-- Base Frontage Reference -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                        <TextBlock Text="Base:" Foreground="#7A8CA5" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock Text="{Binding DataContext.BaseFrontage, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='{}{0:F0}m'}" Foreground="#7A8CA5" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <!-- Custom Frontage -->
+                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                        <TextBlock Text="New Frontage (m):" Foreground="#00E5FF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                        <TextBox Style="{StaticResource DarkTextBox}" Width="75" FontSize="12" FontWeight="Bold" Foreground="#00E5FF" Text="{Binding CustomFrontage, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    </StackPanel>
+
+                                                    <!-- Custom Depth -->
+                                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                        <TextBlock Text="Depth (m):" Foreground="#8E9CB2" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                        <TextBox Style="{StaticResource DarkTextBox}" Width="75" FontSize="12" Text="{Binding CustomDepth, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    </StackPanel>
+
+                                                    <!-- Remove Button -->
+                                                    <Button Grid.Column="5" Content="✕ Remove" Command="{Binding DataContext.RemoveExceptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="#3A1717" Foreground="#FF5252" FontWeight="SemiBold" Padding="10,5" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- LOWER PANEL: DYNAMIC SCHEMATIC PREVIEW OF MODIFIED PARCELS -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="📐 Live Vector Preview (Modified Parcels)" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                        <Border Background="#16294D" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Interactive" Foreground="#00E5FF" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Click any parcel on the diagram to inspect" FontSize="10" Foreground="#8E9CB2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="#1C2B54" BorderThickness="1" Height="220">
+                                    <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}" ShowAnchorHandles="False"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 7: CORNER & CHAMFER -->
+                    <StackPanel Visibility="{Binding IsStep7, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Corner Parcels &amp; Chamfer Geometry" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,10"/>
+                                <CheckBox IsChecked="{Binding HasChamfer}" Content="Apply Corner Chamfer to Outer Parcels" Foreground="#FFFFFF" FontSize="12" Margin="0,0,0,10" Cursor="Hand"/>
+                                <StackPanel Visibility="{Binding HasChamfer, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Chamfer Cut Length (meters)" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Width="150" HorizontalAlignment="Left" Text="{Binding ChamferLength, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 8: SPATIAL ALIGNMENT -->
+                    <StackPanel Visibility="{Binding IsStep8, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Spatial Baseline &amp; Orientation" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,8"/>
+                                <TextBlock Text="Define block orientation and origin by picking 2 points with snapping, selecting an existing line / polygon boundary edge on the map, or centering on the current view." FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,14"/>
+
+                                <!-- Action Buttons Row -->
+                                <WrapPanel Margin="0,0,0,14">
+                                    <Button Content="✏ 2-Point Baseline (Snapping)" Command="{Binding SetAlignmentCommand}" Background="#173160" Foreground="#00E5FF" FontWeight="SemiBold" Padding="12,8" Margin="0,0,8,6" BorderThickness="0" Cursor="Hand" ToolTip="Click 2 points on the map with active vertex/edge snapping to define orientation"/>
+                                    <Button Content="📏 Pick Line / Polygon Edge" Command="{Binding SetAlignmentFromFeatureCommand}" Background="#1A3B66" Foreground="#00E5FF" FontWeight="SemiBold" Padding="12,8" Margin="0,0,8,6" BorderThickness="0" Cursor="Hand" ToolTip="Click any existing line feature or polygon boundary edge on the map"/>
+                                    <Button Content="📍 Move to Map Center" Command="{Binding MoveToMapExtentCommand}" Background="#00BFA5" Foreground="#0B132B" FontWeight="Bold" Padding="12,8" Margin="0,0,0,6" BorderThickness="0" Cursor="Hand" ToolTip="Relocate the block origin to the current map view center"/>
+                                </WrapPanel>
+
+                                <!-- Active Alignment Vector Details Card -->
+                                <Border Background="#0C152E" BorderBrush="#1C2B54" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Bearing / Azimuth -->
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Bearing (Azimuth)" FontSize="10" Foreground="#8E9CB2" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding AlignmentAzimuthDegrees, StringFormat='{}{0:F1}°'}" FontWeight="Bold" FontSize="13" Foreground="#00E5FF"/>
+                                        </StackPanel>
+
+                                        <!-- Length -->
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Vector Length" FontSize="10" Foreground="#8E9CB2" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding AlignmentVectorLength, StringFormat='{}{0:F1} m'}" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                        </StackPanel>
+
+                                        <!-- Origin Point -->
+                                        <StackPanel Grid.Column="4">
+                                            <TextBlock Text="Origin Point (P1)" FontSize="10" Foreground="#8E9CB2" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding AlignmentOriginText}" FontWeight="SemiBold" FontSize="11" Foreground="#8E9CB2"/>
+                                        </StackPanel>
+
+                                        <!-- Target Point -->
+                                        <StackPanel Grid.Column="6">
+                                            <TextBlock Text="Target Point (P2)" FontSize="10" Foreground="#8E9CB2" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding AlignmentTargetText}" FontWeight="SemiBold" FontSize="11" Foreground="#8E9CB2"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- LOWER PANEL: SET BLOCK REFERENCE ANCHOR POINT & SCHEMATIC PREVIEW -->
+                                <Border Background="#0C152E" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="🎯 Block Reference Anchor Point: " FontWeight="Bold" FontSize="12" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                                <Border Background="#16294D" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="4,0,0,0">
+                                                    <TextBlock Text="{Binding AnchorPointDescription}" Foreground="#00E5FF" FontWeight="Bold" FontSize="11"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Select which block vertex aligns with map origin" FontSize="10" Foreground="#8E9CB2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Anchor Point Selector Options -->
+                                        <WrapPanel Margin="0,0,0,10">
+                                            <RadioButton Content="Front-Left (Side A Start)" IsChecked="{Binding IsAnchorSideAStart}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                            <RadioButton Content="Front-Right (Side A End)" IsChecked="{Binding IsAnchorSideAEnd}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                            <RadioButton Content="Street A Center" IsChecked="{Binding IsAnchorSideACenter}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                            <RadioButton Content="Back-Left (Side B Start)" IsChecked="{Binding IsAnchorSideBStart}" Visibility="{Binding IsBackToBack, Converter={StaticResource BoolToVis}}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                            <RadioButton Content="Back-Right (Side B End)" IsChecked="{Binding IsAnchorSideBEnd}" Visibility="{Binding IsBackToBack, Converter={StaticResource BoolToVis}}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                            <RadioButton Content="Block Centroid" IsChecked="{Binding IsAnchorBlockCenter}" Style="{StaticResource OptionCard}" Margin="0,0,8,6" Padding="10,5"/>
+                                        </WrapPanel>
+
+                                        <!-- Vector Schematic Canvas with Interactive Anchor Point Snapping -->
+                                        <Border Background="#091024" CornerRadius="6" Padding="4" BorderBrush="#1C2B54" BorderThickness="1" Height="250">
+                                            <controls:SchematicCanvasControl Configuration="{Binding Config}" 
+                                                                             SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}"
+                                                                             AnchorPoint="{Binding CurrentAnchorPoint, Mode=TwoWay}"
+                                                                             ShowAnchorHandles="True"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 9: DYNAMIC PREVIEW & ARCGIS MAP ZOOM WINDOW -->
+                    <StackPanel Visibility="{Binding IsStep9, Converter={StaticResource BoolToVis}}">
+                        <!-- ARCGIS PRO MAP PREVIEW & ZOOM WINDOW HUD -->
+                        <Border Background="#101C38" BorderBrush="#00E5FF" BorderThickness="1.2" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Background="#00BFA5" CornerRadius="4" Width="22" Height="22" Margin="0,0,8,0">
+                                        <TextBlock Text="🗺" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="ArcGIS Pro Map Preview &amp; Zoom Window" FontWeight="Bold" FontSize="12" Foreground="#00E5FF"/>
+                                        <TextBlock Text="Live synchronized map viewport overlay and spatial bounding controls" FontSize="10" Foreground="#8E9CB2"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Zoom Window Action Controls -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="📍 Move to Map Extent" Command="{Binding MoveToMapExtentCommand}" Background="#00BFA5" Foreground="#0B132B" FontWeight="Bold" FontSize="10" Padding="10,5" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand" ToolTip="Relocate the block origin to the center of the active map view extent"/>
+                                    <Button Content="🔍 Zoom Block Extent" Command="{Binding ZoomToBlockExtentCommand}" Background="#173160" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="10" Padding="10,5" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand" ToolTip="Zoom active map to the full calculated block extent"/>
+                                    <Button Content="🔍 Zoom Selected" Command="{Binding ZoomToSelectedParcelCommand}" Background="#173160" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10" Padding="10,5" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand" ToolTip="Zoom active map to selected parcel"/>
+                                    <Button Content="➕" Command="{Binding ZoomInCommand}" Background="#162347" Foreground="#00E5FF" FontWeight="Bold" FontSize="11" Width="26" Height="26" Margin="0,0,4,0" BorderThickness="0" Cursor="Hand" ToolTip="Zoom In on active map"/>
+                                    <Button Content="➖" Command="{Binding ZoomOutCommand}" Background="#162347" Foreground="#00E5FF" FontWeight="Bold" FontSize="11" Width="26" Height="26" BorderThickness="0" Cursor="Hand" ToolTip="Zoom Out on active map"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="0.9*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Vector Schematic Canvas -->
+                            <StackPanel Grid.Column="0">
+                                <Border Style="{StaticResource CardPanel}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <TextBlock Text="Dynamic Vector Schematic" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Click to inspect parcel" FontSize="10" Foreground="#00E5FF" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="#1C2B54" BorderThickness="1" Height="220">
+                                            <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Right: Selected Parcel Details & Dimensions -->
+                            <StackPanel Grid.Column="2">
+                                <Border Style="{StaticResource CardPanel}" BorderBrush="#00E5FF" BorderThickness="1.2">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <TextBlock Text="Parcel Inspection Details" FontWeight="Bold" FontSize="12" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                                            <Button Content="🔍 Zoom" Command="{Binding ZoomToSelectedParcelCommand}" Background="#173160" Foreground="#00E5FF" FontSize="10" Padding="6,2" BorderThickness="0" HorizontalAlignment="Right" Cursor="Hand"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Parcel ID" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding SelectedParcelId}" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Side &amp; Type" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding SelectedParcelSide}" FontSize="10" FontWeight="SemiBold" Foreground="#29B6F6" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Frontage" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding SelectedParcelFrontage, StringFormat='{}{0:F1} m'}" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Depth" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding SelectedParcelDepth, StringFormat='{}{0:F1} m'}" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Area" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding SelectedParcelArea, StringFormat='{}{0:N0} m²'}" FontSize="11" FontWeight="Bold" Foreground="#00BFA5" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Block Dimensions -->
+                                <Border Style="{StaticResource CardPanel}">
+                                    <StackPanel>
+                                        <TextBlock Text="Block Metrics" FontWeight="Bold" FontSize="12" Foreground="#FFFFFF" Margin="0,0,0,6"/>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Block Length" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding EstimatedBlockLength, StringFormat='{}~ {0:F0} m'}" FontSize="10" FontWeight="Bold" Foreground="#00E5FF" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <TextBlock Text="Total Area" FontSize="10" Foreground="#7A8CA5"/>
+                                            <TextBlock Text="{Binding EstimatedBlockArea, StringFormat='{}{0:N0} m²'}" FontSize="10" FontWeight="Bold" Foreground="#00BFA5" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- STEP 10: VALIDATION -->
+                    <StackPanel Visibility="{Binding IsStep10, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="Geometry &amp; Parameter Rules Validation" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,12"/>
+
+                                <Border Background="#122E22" BorderBrush="#00BFA5" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10" Visibility="{Binding IsValidationPassing, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="✓ Configuration and geometry rules passed with zero blocking errors." Foreground="#A7F3D0" FontWeight="SemiBold" FontSize="12"/>
+                                </Border>
+
+                                <ItemsControl ItemsSource="{Binding ValidationErrors}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#3A1717" BorderBrush="#FF5252" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding StringFormat='{}✕ ERROR: {0}'}" Foreground="#FF8A80" FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <ItemsControl ItemsSource="{Binding ValidationWarnings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#2B2115" BorderBrush="#FF9800" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding StringFormat='{}⚠ WARNING: {0}'}" Foreground="#FFE0B2" FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- STEP 11: FINAL REVIEW SCREEN & GENERATE -->
+                    <StackPanel Visibility="{Binding IsStep11, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="0.9*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Configuration Blueprint Summary -->
+                            <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="Configuration Summary Blueprint" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,12"/>
+
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Source Mode" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding Config.SourceMode}" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Relationship" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding Config.Relationship}" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Arrangement" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding Config.Arrangement}" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Side A Count" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding SideACount}" FontSize="11" FontWeight="Bold" Foreground="#29B6F6" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3" Visibility="{Binding IsBackToBack, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Side B Count" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding SideBCount}" FontSize="11" FontWeight="Bold" Foreground="#AB47BC" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Base Dimensions" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding BaseFrontage, StringFormat='{}{0:F0} m × '}" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Grid Margin="0,3">
+                                        <TextBlock Text="Chamfer Status" FontSize="11" Foreground="#7A8CA5"/>
+                                        <TextBlock Text="{Binding HasChamfer}" FontSize="11" FontWeight="SemiBold" Foreground="#00BFA5" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Right: Geodatabase Output Destination -->
+                            <Border Grid.Column="2" Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="Output Destination" FontWeight="Bold" FontSize="14" Foreground="#FFFFFF" Margin="0,0,0,12"/>
+
+                                    <TextBlock Text="Feature Class Name" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding OutputFeatureClassName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                                    <TextBlock Text="Target Geodatabase / Workspace" FontSize="11" Foreground="#8E9CB2" Margin="0,0,0,6"/>
+                                    <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding OutputWorkspacePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"/>
+
+                                    <Button Content="⛯ Generate Feature Class Now" Command="{Binding GenerateFeatureClassCommand}" Background="#00BFA5" Foreground="#0B132B" FontWeight="Bold" FontSize="13" Padding="16,10" BorderThickness="0" HorizontalAlignment="Left" Cursor="Hand"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- PROGRESS & ASYNC CANCELLATION BAR -->
+        <Border Grid.Row="2" Background="#162547" BorderBrush="#1C2B54" BorderThickness="0,1,0,0" Padding="14,6" Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusText}" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="10" Margin="0,0,0,3"/>
+                    <ProgressBar Height="4" Maximum="100" Value="{Binding ProgressPercent}" Foreground="#00BFA5" Background="#0C152E" BorderThickness="0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="✕ Cancel" Command="{Binding CancelOperationCommand}" Background="#3A1717" Foreground="#FF5252" FontWeight="SemiBold" Padding="10,3" Margin="10,0,0,0" BorderThickness="0" Cursor="Hand"/>
+            </Grid>
+        </Border>
+
+        <!-- 3. BOTTOM FOOTER NAVIGATION BAR -->
+        <Border Grid.Row="3" Background="#0E1736" BorderBrush="#1C2B54" BorderThickness="0,1,0,0" Padding="14,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Reset & Back -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="↺ Reset" Command="{Binding ResetCommand}" Background="#1C2B54" Foreground="#E0E6ED" Padding="10,5" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand"/>
+                    <Button Content="← Back" Command="{Binding PreviousStepCommand}" Background="#1C2B54" Foreground="#E0E6ED" Padding="12,5" BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
+
+                <!-- Center: Status -->
+                <TextBlock Grid.Column="1" Text="{Binding StatusText}" Foreground="#7A8CA5" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                <!-- Right: Next & Generate -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Next →" Command="{Binding NextStepCommand}" Background="#173160" Foreground="#00E5FF" FontWeight="SemiBold" Padding="14,5" Margin="0,0,8,0" BorderThickness="0" Cursor="Hand"/>
+                    <Button Content="Generate Feature Class" Command="{Binding GenerateFeatureClassCommand}" Background="#00BFA5" Foreground="#0B132B" FontWeight="Bold" Padding="14,5" BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

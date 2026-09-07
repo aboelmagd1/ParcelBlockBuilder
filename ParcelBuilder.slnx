@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/AddIn/">
+    <Project Path="src/AddIn/ParcelBuilder.AddIn.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/ParcelBuilder.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ParcelBuilder.Tests/ParcelBuilder.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,105 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ParcelBuilder.AddIn</RootNamespace>
+    <AssemblyName>ParcelBuilder.AddIn</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <ArcGISProDir Condition="'$(ArcGISProDir)' == ''">C:\Program Files\ArcGIS\Pro</ArcGISProDir>
+  </PropertyGroup>
+
+  <!-- Exclude map tools during WPF temporary pass -->
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">
+    <Compile Remove="SelectParcelTool.cs" />
+    <Compile Remove="AlignmentTool.cs" />
+  </ItemGroup>
+
+  <!-- ArcGIS Pro SDK Assembly References -->
+  <ItemGroup>
+    <Reference Include="ArcGIS.Core">
+      <HintPath>$(ArcGISProDir)\bin\ArcGIS.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Framework">
+      <HintPath>$(ArcGISProDir)\bin\ArcGIS.Desktop.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Shared.Wpf">
+      <HintPath>$(ArcGISProDir)\bin\ArcGIS.Desktop.Shared.Wpf.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Core">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\Core\ArcGIS.Desktop.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Catalog">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\Catalog\ArcGIS.Desktop.Catalog.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Mapping">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\Mapping\ArcGIS.Desktop.Mapping.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Extensions">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\DesktopExtensions\ArcGIS.Desktop.Extensions.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.Editing">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\Editing\ArcGIS.Desktop.Editing.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ArcGIS.Desktop.GeoProcessing">
+      <HintPath>$(ArcGISProDir)\bin\Extensions\Geoprocessing\ArcGIS.Desktop.GeoProcessing.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\ParcelBuilder.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Config.daml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DarkImages\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Automated Add-In Packager Target -->
+  <Target Name="BuildEsriAddinXPackage" AfterTargets="AfterBuild">
+    <PropertyGroup>
+      <StagingDir>$(IntermediateOutputPath)AddInStaging\</StagingDir>
+      <PackageOutputDir>$(MSBuildProjectDirectory)\..\..\AddInPackage\</PackageOutputDir>
+      <TargetAddInName>ParcelBuilder.esriAddinX</TargetAddInName>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(StagingDir);$(StagingDir)Install;$(StagingDir)Images;$(StagingDir)DarkImages;$(PackageOutputDir)" />
+
+    <!-- Copy Config.daml to root of staging -->
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Config.daml" DestinationFolder="$(StagingDir)" />
+
+    <!-- Copy Built DLLs into Install folder -->
+    <Copy SourceFiles="$(TargetDir)$(TargetFileName)" DestinationFolder="$(StagingDir)Install\" />
+    <Copy SourceFiles="$(TargetDir)ParcelBuilder.Core.dll" DestinationFolder="$(StagingDir)Install\" />
+
+    <!-- Copy Images -->
+    <Copy SourceFiles="@(Content)" Condition="'%(Extension)' == '.png'" DestinationFolder="$(StagingDir)%(RelativeDir)" />
+
+    <!-- Create Zip Archive with .esriAddinX extension -->
+    <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(PackageOutputDir)$(TargetAddInName)" Overwrite="true" />
+    <Copy SourceFiles="$(PackageOutputDir)$(TargetAddInName)" DestinationFolder="$(TargetDir)" />
+
+    <Message Importance="High" Text="==========================================================" />
+    <Message Importance="High" Text="SUCCESSFULLY PACKAGED ARCGIS PRO ADDIN:" />
+    <Message Importance="High" Text="--> $(PackageOutputDir)$(TargetAddInName)" />
+    <Message Importance="High" Text="==========================================================" />
+  </Target>
+
+</Project>

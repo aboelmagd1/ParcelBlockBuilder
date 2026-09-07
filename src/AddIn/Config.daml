@@ -1,0 +1,103 @@
+<ArcGIS defaultAssembly="ParcelBuilder.AddIn.dll"
+        defaultNamespace="ParcelBuilder.AddIn"
+        xmlns="http://schemas.esri.com/DADF/Registry"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
+  <AddInInfo id="{3c88b90e-b7d1-4cb5-827d-92265005b630}" version="1.0" desktopVersion="3.4.0">
+    <Name>Parcel Builder</Name>
+    <Description>Professional Parcel and Block Builder Add-in for ArcGIS Pro. Create blocks from parcel dimensions, extract configurations from existing GIS parcels, preview, validate, and generate feature classes.</Description>
+    <Image>Images\ParcelBuilder32.png</Image>
+    <Author>GIS Architecture Team</Author>
+    <Company>Antigravity CAD/GIS</Company>
+    <Date>9/7/2026</Date>
+    <Subject>Editing, Geodatabase, Cadastre, Land Administration</Subject>
+  </AddInInfo>
+
+  <modules>
+    <insertModule id="ParcelBuilder_Module" className="ParcelBuilderModule" autoLoad="false" caption="Parcel Builder Module">
+      <tabs>
+        <tab id="ParcelBuilder_Tab" caption="PARCEL BUILDER">
+          <group refID="ParcelBuilder_MainGroup"/>
+          <group refID="ParcelBuilder_ToolsGroup"/>
+        </tab>
+      </tabs>
+
+      <groups>
+        <group id="ParcelBuilder_MainGroup" caption="Builder Workflow" appearsOnAddInTab="true">
+          <button refID="ParcelBuilder_ShowDockPaneButton" size="large" />
+        </group>
+        <group id="ParcelBuilder_ToolsGroup" caption="Map Capture Tools" appearsOnAddInTab="true">
+          <tool refID="ParcelBuilder_SelectParcelTool" size="large" />
+          <tool refID="ParcelBuilder_AlignmentTool" size="large" />
+          <tool refID="ParcelBuilder_SelectAlignmentFeatureTool" size="large" />
+        </group>
+      </groups>
+
+      <controls>
+        <!-- Button to show main DockPane -->
+        <button id="ParcelBuilder_ShowDockPaneButton"
+                caption="Parcel Builder"
+                className="ShowParcelBuilderButton"
+                loadOnClick="true"
+                smallImage="Images\ParcelBuilder16.png"
+                largeImage="Images\ParcelBuilder32.png"
+                keytip="PB">
+          <tooltip heading="Parcel Builder Workstation">
+            Open the Parcel Builder dockpane to configure, extract, preview, and generate parcel blocks.
+            <disabledText>Open a map to use Parcel Builder.</disabledText>
+          </tooltip>
+        </button>
+
+        <!-- Map Selection Tool for extracting parcel -->
+        <tool id="ParcelBuilder_SelectParcelTool"
+              caption="Select Parcel"
+              className="SelectParcelTool"
+              loadOnClick="true"
+              smallImage="Images\ParcelBuilder16.png"
+              largeImage="Images\ParcelBuilder32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="Select Base Parcel">
+            Click an existing parcel on the map to extract and infer the surrounding block configuration.
+          </tooltip>
+        </tool>
+
+        <!-- 2-Point Alignment Tool -->
+        <tool id="ParcelBuilder_AlignmentTool"
+              caption="Set Alignment"
+              className="AlignmentTool"
+              loadOnClick="true"
+              smallImage="Images\ParcelBuilder16.png"
+              largeImage="Images\ParcelBuilder32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="2-Point Alignment Vector">
+            Click two points on the map with snapping to define the block orientation baseline.
+          </tooltip>
+        </tool>
+
+        <!-- Line or Polygon Segment Alignment Tool -->
+        <tool id="ParcelBuilder_SelectAlignmentFeatureTool"
+              caption="Pick Segment"
+              className="SelectAlignmentFeatureTool"
+              loadOnClick="true"
+              smallImage="Images\ParcelBuilder16.png"
+              largeImage="Images\ParcelBuilder32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="Pick Line or Polygon Segment">
+            Click an existing line feature or polygon boundary edge on the map to snap the alignment baseline.
+          </tooltip>
+        </tool>
+      </controls>
+
+      <dockPanes>
+        <dockPane id="ParcelBuilder_DockPane"
+                  caption="Parcel Builder"
+                  className="ParcelBuilderDockPaneViewModel"
+                  dock="right"
+                  dockBar="true"
+                  condition="esri_mapping_mapPane">
+          <content className="ParcelBuilderDockPaneView" />
+        </dockPane>
+      </dockPanes>
+    </insertModule>
+  </modules>
+</ArcGIS>
