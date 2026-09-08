@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Framework;
@@ -9,15 +8,15 @@ using ArcGIS.Desktop.Mapping;
 namespace ParcelBuilder.AddIn
 {
     /// <summary>
-    /// Interactive map tool allowing user to draw a 2-point orientation line on the map with active snapping
-    /// to define the block orientation baseline vector (P1 -> P2) without moving the Base Point anchor.
+    /// Interactive map tool allowing the user to click a location on the ArcGIS Pro map (with snapping enabled)
+    /// to anchor the selected Base Point target map coordinates (WHERE the block is placed).
     /// </summary>
-    internal class AlignmentTool : MapTool
+    internal class SelectBasePointTool : MapTool
     {
-        public AlignmentTool()
+        public SelectBasePointTool()
         {
             IsSketchTool = true;
-            SketchType = SketchGeometryType.Line;
+            SketchType = SketchGeometryType.Point;
             SketchOutputMode = SketchOutputMode.Map;
             UseSnapping = true;
         }
@@ -27,52 +26,46 @@ namespace ParcelBuilder.AddIn
             var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
             if (dockPane != null)
             {
-                dockPane.StatusText = "📍 Click Point 1 (P1) then Point 2 (P2) on the map (with snapping) to define orientation baseline...";
+                dockPane.StatusText = "📍 Click a location on the map (with snapping) to place the selected Base Point...";
             }
             return Task.CompletedTask;
         }
 
         protected override async Task<bool> OnSketchCompleteAsync(Geometry geometry)
         {
-            if (geometry is not Polyline polyline) return false;
+            if (geometry is not MapPoint clickPoint) return false;
 
             var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
 
             try
             {
-                double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-                bool valid = false;
+                double x = 0;
+                double y = 0;
+                int wkid = 0;
+                string? srName = null;
 
                 await QueuedTask.Run(() =>
                 {
                     var mapView = MapView.Active;
                     var mapSr = mapView?.Map?.SpatialReference ?? geometry.SpatialReference ?? SpatialReferences.WGS84;
-                    var projectedPoly = GeometryEngine.Instance.Project(polyline, mapSr) as Polyline ?? polyline;
-
-                    var pts = projectedPoly.Points;
-                    if (pts != null && pts.Count >= 2)
-                    {
-                        var p1 = pts.First();
-                        var p2 = pts.Last();
-                        x1 = p1.X;
-                        y1 = p1.Y;
-                        x2 = p2.X;
-                        y2 = p2.Y;
-                        valid = true;
-                    }
+                    var projectedPoint = GeometryEngine.Instance.Project(clickPoint, mapSr) as MapPoint ?? clickPoint;
+                    x = projectedPoint.X;
+                    y = projectedPoint.Y;
+                    wkid = mapSr.Wkid;
+                    srName = mapSr.Name;
                 });
 
-                if (valid && dockPane != null)
+                if (dockPane != null)
                 {
                     dockPane.Activate();
-                    dockPane.SetOrientationTwoPoints(x1, y1, x2, y2);
+                    dockPane.SetBasePointMapLocation(x, y, wkid, srName);
                 }
             }
             catch (Exception ex)
             {
                 if (dockPane != null)
                 {
-                    dockPane.StatusText = $"Orientation notice: {ex.Message}";
+                    dockPane.StatusText = $"Base Point selection notice: {ex.Message}";
                 }
             }
 

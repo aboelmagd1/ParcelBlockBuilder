@@ -47,11 +47,52 @@ namespace ParcelBuilder.Core.Models
     }
 
     /// <summary>
+    /// Specific calculation method for corner chamfers.
+    /// </summary>
+    public enum ChamferMode
+    {
+        DirectCutLength = 0,        // 1- Direct cut length along chamfer diagonal
+        StreetSetbacks = 1,         // 2- Setback distances along intersecting street edges (auto-calculates chamfer length)
+        CutLengthAndAngle = 2,      // 3- Chamfer cut length with specified cut angle
+        SetbackAndAngle = 3         // 4- Setback distance on primary edge with specified cut angle
+    }
+
+    /// <summary>
+    /// Placement position mode for the electric room / substation.
+    /// </summary>
+    public enum ElectricRoomPlacementMode
+    {
+        AtOffsetDistance = 0,       // Positioned at X meters from the start of the block frontage
+        OnSpecificParcel = 1,       // Positioned within a specific parcel
+        BetweenParcels = 2          // Positioned at the boundary between two adjacent parcels
+    }
+
+    /// <summary>
+    /// Placement relationship type for the electric room footprint.
+    /// </summary>
+    public enum ElectricRoomPlacementType
+    {
+        InsideSingleParcel = 0,     // Electric room footprint is entirely inside one host parcel
+        BetweenTwoParcels = 1,      // Electric room footprint spans across the boundary between two parcels
+        InvalidOutsideBlock = 2     // Footprint extends outside block boundary or invalid
+    }
+
+    /// <summary>
+    /// Placement method used to define the electric room position.
+    /// </summary>
+    public enum ElectricRoomPlacementMethod
+    {
+        InteractiveMapPlacement = 0, // Click location interactively on ArcGIS Pro map
+        OffsetDistance = 1           // Specify offset distance along street frontage
+    }
+
+    /// <summary>
     /// Method used to align the generated block in spatial coordinates.
     /// </summary>
     public enum AlignmentMethod
     {
         TwoPoints = 0,
+        MapSegment = 1,
         ExistingLine = 1,
         ExplicitAngle = 2
     }

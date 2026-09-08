@@ -47,8 +47,9 @@ namespace ParcelBuilder.Core.Models
         // Per-Parcel Overrides / Exceptions
         public List<ParcelException> Exceptions { get; set; } = new List<ParcelException>();
 
-        // Corners, Chamfers & Alignment Settings
+        // Corners, Chamfers, Electric Room & Alignment Settings
         public CornerConfiguration Corner { get; set; } = new CornerConfiguration();
+        public ElectricRoomConfiguration ElectricRoom { get; set; } = new ElectricRoomConfiguration();
         public AlignmentConfiguration Alignment { get; set; } = new AlignmentConfiguration();
 
         // Computed Dimensions Summary
@@ -71,6 +72,7 @@ namespace ParcelBuilder.Core.Models
                 SideA = this.SideA?.Clone() ?? new SideConfiguration(),
                 SideB = this.SideB?.Clone() ?? new SideConfiguration(),
                 Corner = this.Corner?.Clone() ?? new CornerConfiguration(),
+                ElectricRoom = this.ElectricRoom?.Clone() ?? new ElectricRoomConfiguration(),
                 Alignment = this.Alignment?.Clone() ?? new AlignmentConfiguration(),
                 EstimatedBlockLength = this.EstimatedBlockLength,
                 EstimatedBlockDepth = this.EstimatedBlockDepth,

@@ -93,6 +93,7 @@ namespace ParcelBuilder.AddIn.Services
             var fieldDefinitions = new (string Name, string Type, int Length, string Alias)[]
             {
                 ("ParcelID", "TEXT", 30, "Parcel Identifier"),
+                ("FeatureType", "TEXT", 30, "Feature Classification (Parcel / ElectricRoom)"),
                 ("Side", "TEXT", 15, "Block Side"),
                 ("Sequence", "LONG", 0, "Sequence Number"),
                 ("Frontage", "DOUBLE", 0, "Frontage Width (m)"),
@@ -101,6 +102,10 @@ namespace ParcelBuilder.AddIn.Services
                 ("ParcelType", "TEXT", 30, "Parcel Classification"),
                 ("IsCorner", "SHORT", 0, "Is Corner Parcel (1/0)"),
                 ("StreetLabel", "TEXT", 100, "Street Name / Label"),
+                ("PlacementType", "TEXT", 30, "Substation Placement Type"),
+                ("HostParcel1", "TEXT", 30, "Primary Host Parcel"),
+                ("HostParcel2", "TEXT", 30, "Secondary Host Parcel"),
+                ("PlacementSide", "TEXT", 15, "Electric Room Placement Side"),
                 ("BlockLength", "DOUBLE", 0, "Total Block Length (m)"),
                 ("Arrangement", "TEXT", 30, "Block Arrangement Mode")
             };
@@ -123,6 +128,8 @@ namespace ParcelBuilder.AddIn.Services
                 var fcDef = fc.GetDefinition();
                 string shapeFieldName = fcDef.GetShapeField();
 
+                var erConfig = config.ElectricRoom;
+
                 foreach (var parcel in allParcels)
                 {
                     if (parcel.PolygonRing.Count < 3) continue;
@@ -138,7 +145,10 @@ namespace ParcelBuilder.AddIn.Services
                     using var rowBuffer = fc.CreateRowBuffer();
                     rowBuffer[shapeFieldName] = polygon;
 
+                    bool isElectricRoom = parcel.Type == "Electric Room" || parcel.Id == "ER-01";
+
                     SetRowValue(rowBuffer, fcDef, "ParcelID", parcel.Id);
+                    SetRowValue(rowBuffer, fcDef, "FeatureType", isElectricRoom ? "ElectricRoom" : "Parcel");
                     SetRowValue(rowBuffer, fcDef, "Side", parcel.Side.ToString());
                     SetRowValue(rowBuffer, fcDef, "Sequence", parcel.Sequence);
                     SetRowValue(rowBuffer, fcDef, "Frontage", Math.Round(parcel.Frontage, 2));
@@ -147,6 +157,22 @@ namespace ParcelBuilder.AddIn.Services
                     SetRowValue(rowBuffer, fcDef, "ParcelType", parcel.Type);
                     SetRowValue(rowBuffer, fcDef, "IsCorner", parcel.IsCorner ? (short)1 : (short)0);
                     SetRowValue(rowBuffer, fcDef, "StreetLabel", parcel.Side == ParcelSide.SideA ? config.SideA.StreetLabel : config.SideB.StreetLabel);
+
+                    if (isElectricRoom && erConfig != null)
+                    {
+                        SetRowValue(rowBuffer, fcDef, "PlacementType", erConfig.PlacementType.ToString());
+                        SetRowValue(rowBuffer, fcDef, "HostParcel1", erConfig.HostParcelIds.Count > 0 ? erConfig.HostParcelIds[0] : string.Empty);
+                        SetRowValue(rowBuffer, fcDef, "HostParcel2", erConfig.HostParcelIds.Count > 1 ? erConfig.HostParcelIds[1] : string.Empty);
+                        SetRowValue(rowBuffer, fcDef, "PlacementSide", erConfig.Side.ToString());
+                    }
+                    else
+                    {
+                        SetRowValue(rowBuffer, fcDef, "PlacementType", "N/A");
+                        SetRowValue(rowBuffer, fcDef, "HostParcel1", string.Empty);
+                        SetRowValue(rowBuffer, fcDef, "HostParcel2", string.Empty);
+                        SetRowValue(rowBuffer, fcDef, "PlacementSide", string.Empty);
+                    }
+
                     SetRowValue(rowBuffer, fcDef, "BlockLength", Math.Round(config.EstimatedBlockLength, 2));
                     SetRowValue(rowBuffer, fcDef, "Arrangement", config.Arrangement.ToString());
 

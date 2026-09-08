@@ -6,6 +6,7 @@ using ArcGIS.Core.CIM;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Framework.Threading.Tasks;
 using ArcGIS.Desktop.Mapping;
+using ParcelBuilder.Core.Geometry;
 using ParcelBuilder.Core.Models;
 
 namespace ParcelBuilder.AddIn.Services
@@ -13,6 +14,7 @@ namespace ParcelBuilder.AddIn.Services
     /// <summary>
     /// Enterprise preview service providing real-time, ephemeral MapView overlays
     /// with zero Table-of-Contents (TOC) pollution, dynamic highlighting, and smooth zoom window navigation.
+    /// Visualizes transformed parcel polygons, the fixed Base Point anchor, and orientation reference vectors.
     /// </summary>
     public class ParcelPreviewService
     {
@@ -43,7 +45,8 @@ namespace ParcelBuilder.AddIn.Services
         }
 
         /// <summary>
-        /// Updates the live map preview with current block configuration and highlights the selected parcel.
+        /// Updates the live map preview with current block configuration, highlights the selected parcel,
+        /// and renders the Base Point anchor and orientation reference vector.
         /// </summary>
         public async Task UpdateMapPreviewAsync(BlockConfiguration config, string? selectedParcelId = null)
         {
@@ -71,7 +74,7 @@ namespace ParcelBuilder.AddIn.Services
                     var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).ToList();
                     if (allParcels.Count == 0) return;
 
-                    // Symbols definition with SimpleFillStyle
+                    // 1. Symbols definition
                     var sideASymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
                         CIMColor.CreateRGBColor(41, 182, 246, 80), // #29B6F6 with 30% alpha
                         SimpleFillStyle.Solid,
@@ -84,12 +87,19 @@ namespace ParcelBuilder.AddIn.Services
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(123, 31, 162), 1.5, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
 
+                    var electricRoomSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
+                        CIMColor.CreateRGBColor(255, 145, 0, 140), // Glowing Amber with 55% alpha
+                        SimpleFillStyle.Solid,
+                        SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(255, 215, 64), 2.0, SimpleLineStyle.Solid)
+                    ).MakeSymbolReference();
+
                     var highlightSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
                         CIMColor.CreateRGBColor(0, 229, 255, 140), // Glowing Cyan with 55% alpha
                         SimpleFillStyle.Solid,
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(255, 255, 255), 2.5, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
 
+                    // 2. Draw Parcel Polygons & Centroid Labels
                     foreach (var parcel in allParcels)
                     {
                         if (parcel.PolygonRing.Count < 3) continue;
@@ -102,7 +112,8 @@ namespace ParcelBuilder.AddIn.Services
                         var polygon = PolygonBuilderEx.CreatePolygon(points, spatialReference);
 
                         bool isSelected = !string.IsNullOrEmpty(selectedParcelId) && parcel.Id == selectedParcelId;
-                        var symbolRef = isSelected ? highlightSymbol : (parcel.Side == ParcelSide.SideA ? sideASymbol : sideBSymbol);
+                        bool isElectricRoom = parcel.Type == "Electric Room" || parcel.Id == "ER-01";
+                        var symbolRef = isSelected ? highlightSymbol : (isElectricRoom ? electricRoomSymbol : (parcel.Side == ParcelSide.SideA ? sideASymbol : sideBSymbol));
 
                         var polygonOverlay = mapView.AddOverlay(polygon, symbolRef);
                         if (polygonOverlay != null)
@@ -126,6 +137,82 @@ namespace ParcelBuilder.AddIn.Services
                         if (textOverlay != null)
                         {
                             _activeOverlays.Add(textOverlay);
+                        }
+                    }
+
+                    // 3. Draw Fixed Base Point Anchor Marker
+                    if (config.Alignment != null && config.Alignment.IsBasePointPlaced)
+                    {
+                        double targetX = config.Alignment.TargetMapPointX!.Value;
+                        double targetY = config.Alignment.TargetMapPointY!.Value;
+                        var baseMapPoint = MapPointBuilderEx.CreateMapPoint(targetX, targetY, spatialReference);
+
+                        // Glowing Anchor Circle
+                        var anchorPointSymbol = SymbolFactory.Instance.ConstructPointSymbol(
+                            CIMColor.CreateRGBColor(0, 229, 255),
+                            14.0,
+                            SimpleMarkerStyle.Circle
+                        );
+                        var basePointOverlay = mapView.AddOverlay(baseMapPoint, anchorPointSymbol.MakeSymbolReference());
+                        if (basePointOverlay != null)
+                        {
+                            _activeOverlays.Add(basePointOverlay);
+                        }
+
+                        // Anchor label
+                        var anchorLabelSymbol = SymbolFactory.Instance.ConstructTextSymbol(
+                            CIMColor.CreateRGBColor(0, 229, 255),
+                            9.0,
+                            "Segoe UI",
+                            "Bold"
+                        );
+                        anchorLabelSymbol.HaloSize = 1.0;
+                        anchorLabelSymbol.HaloSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(CIMColor.CreateRGBColor(11, 19, 43, 220));
+                        anchorLabelSymbol.OffsetX = 12.0;
+                        anchorLabelSymbol.OffsetY = 12.0;
+
+                        var anchorLabelOverlay = mapView.AddOverlay(baseMapPoint, anchorLabelSymbol.MakeSymbolReference());
+                        if (anchorLabelOverlay != null)
+                        {
+                            _activeOverlays.Add(anchorLabelOverlay);
+                        }
+                    }
+
+                    // 4. Draw Orientation Reference Overlay
+                    if (config.Alignment != null)
+                    {
+                        var al = config.Alignment;
+                        if (al.Method == AlignmentMethod.TwoPoints &&
+                            al.TwoPointStartX.HasValue && al.TwoPointStartY.HasValue &&
+                            al.TwoPointEndX.HasValue && al.TwoPointEndY.HasValue)
+                        {
+                            var p1 = MapPointBuilderEx.CreateMapPoint(al.TwoPointStartX.Value, al.TwoPointStartY.Value, spatialReference);
+                            var p2 = MapPointBuilderEx.CreateMapPoint(al.TwoPointEndX.Value, al.TwoPointEndY.Value, spatialReference);
+                            var line = PolylineBuilderEx.CreatePolyline(new[] { p1, p2 }, spatialReference);
+
+                            var lineSymbol = SymbolFactory.Instance.ConstructLineSymbol(
+                                CIMColor.CreateRGBColor(255, 215, 64),
+                                2.0,
+                                SimpleLineStyle.Dash
+                            );
+                            var lineOverlay = mapView.AddOverlay(line, lineSymbol.MakeSymbolReference());
+                            if (lineOverlay != null) _activeOverlays.Add(lineOverlay);
+                        }
+                        else if (al.Method == AlignmentMethod.MapSegment &&
+                                 al.SegmentStartX.HasValue && al.SegmentStartY.HasValue &&
+                                 al.SegmentEndX.HasValue && al.SegmentEndY.HasValue)
+                        {
+                            var s1 = MapPointBuilderEx.CreateMapPoint(al.SegmentStartX.Value, al.SegmentStartY.Value, spatialReference);
+                            var s2 = MapPointBuilderEx.CreateMapPoint(al.SegmentEndX.Value, al.SegmentEndY.Value, spatialReference);
+                            var segLine = PolylineBuilderEx.CreatePolyline(new[] { s1, s2 }, spatialReference);
+
+                            var segLineSymbol = SymbolFactory.Instance.ConstructLineSymbol(
+                                CIMColor.CreateRGBColor(0, 191, 165),
+                                2.5,
+                                SimpleLineStyle.Solid
+                            );
+                            var segOverlay = mapView.AddOverlay(segLine, segLineSymbol.MakeSymbolReference());
+                            if (segOverlay != null) _activeOverlays.Add(segOverlay);
                         }
                     }
                 }
@@ -205,66 +292,11 @@ namespace ParcelBuilder.AddIn.Services
         }
 
         /// <summary>
-        /// Spatial translation & azimuth rotation helper converting local coordinates to MapView coordinates using AnchorPoint.
+        /// Authoritative forward transformation delegating to BlockTransformationService.
         /// </summary>
         public static (double X, double Y) TransformPointToMap(double localX, double localY, BlockConfiguration? config)
         {
-            if (config == null || config.Alignment == null ||
-                (Math.Abs(config.Alignment.OriginX) < 1e-6 && Math.Abs(config.Alignment.OriginY) < 1e-6))
-            {
-                return (localX, localY);
-            }
-
-            var alignment = config.Alignment;
-            double anchorX = 0.0;
-            double anchorY = 0.0;
-
-            double frontageA = config.SideA.TotalFrontage;
-            double frontageB = config.SideB.TotalFrontage;
-            double maxFrontage = Math.Max(frontageA, frontageB);
-
-            double depthA = config.BaseParcel.Depth;
-            double depthB = config.Arrangement == ArrangementMode.BackToBack ? -config.BaseParcel.Depth : 0.0;
-
-            switch (alignment.AnchorPoint)
-            {
-                case BlockAnchorPoint.SideAStart:
-                    anchorX = 0.0;
-                    anchorY = depthA;
-                    break;
-                case BlockAnchorPoint.SideAEnd:
-                    anchorX = frontageA;
-                    anchorY = depthA;
-                    break;
-                case BlockAnchorPoint.SideACenter:
-                    anchorX = frontageA / 2.0;
-                    anchorY = depthA;
-                    break;
-                case BlockAnchorPoint.SideBStart:
-                    anchorX = 0.0;
-                    anchorY = depthB;
-                    break;
-                case BlockAnchorPoint.SideBEnd:
-                    anchorX = frontageB;
-                    anchorY = depthB;
-                    break;
-                case BlockAnchorPoint.BlockCenter:
-                    anchorX = maxFrontage / 2.0;
-                    anchorY = config.Arrangement == ArrangementMode.BackToBack ? 0.0 : depthA / 2.0;
-                    break;
-            }
-
-            double relX = localX - anchorX;
-            double relY = localY - anchorY;
-
-            double angleRad = (90.0 - alignment.AzimuthAngleDegrees) * (Math.PI / 180.0);
-            double cosA = Math.Cos(angleRad);
-            double sinA = Math.Sin(angleRad);
-
-            double rotX = (relX * cosA) - (relY * sinA);
-            double rotY = (relX * sinA) + (relY * cosA);
-
-            return (alignment.OriginX + rotX, alignment.OriginY + rotY);
+            return BlockTransformationService.TransformLocalToMap(localX, localY, config);
         }
 
         /// <summary>

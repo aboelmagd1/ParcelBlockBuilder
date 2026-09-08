@@ -49,6 +49,10 @@ namespace ParcelBuilder.AddIn
 
             try
             {
+                double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+                string? featureDesc = null;
+                bool found = false;
+
                 await QueuedTask.Run(() =>
                 {
                     var mapView = MapView.Active;
@@ -59,104 +63,142 @@ namespace ParcelBuilder.AddIn
 
                     // Calculate a reasonable search tolerance based on current view extent
                     double extentWidth = mapView.Extent != null ? Math.Abs(mapView.Extent.Width) : 100.0;
-                    double searchTolerance = Math.Max(0.0001, extentWidth * 0.03);
+                    double searchTolerance = Math.Max(0.0001, extentWidth * 0.05);
 
-                    Geometry? searchGeom = null;
-                    try
-                    {
-                        searchGeom = GeometryEngine.Instance.Buffer(projectedClick, searchTolerance);
-                    }
-                    catch
-                    {
-                        // Fallback envelope if buffer fails
-                        searchGeom = EnvelopeBuilderEx.CreateEnvelope(
-                            projectedClick.X - searchTolerance,
-                            projectedClick.Y - searchTolerance,
-                            projectedClick.X + searchTolerance,
-                            projectedClick.Y + searchTolerance,
-                            mapSr);
-                    }
-
-                    if (searchGeom == null) return;
+                    var searchEnv = EnvelopeBuilderEx.CreateEnvelope(
+                        projectedClick.X - searchTolerance,
+                        projectedClick.Y - searchTolerance,
+                        projectedClick.X + searchTolerance,
+                        projectedClick.Y + searchTolerance,
+                        mapSr);
 
                     MapPoint? bestStart = null;
                     MapPoint? bestEnd = null;
                     double minDistance = double.MaxValue;
-                    string featureDesc = "Map Feature Edge";
+                    string desc = "Map Feature Edge";
 
-                    // Retrieve only valid visible FeatureLayers that have Polyline or Polygon geometries
-                    var layers = mapView.Map.GetLayersAsFlattenedList()
-                        .OfType<FeatureLayer>()
-                        .Where(l => l.IsVisible && (l.ShapeType == esriGeometryType.esriGeometryPolyline || l.ShapeType == esriGeometryType.esriGeometryPolygon))
-                        .ToList();
-
-                    foreach (var layer in layers)
+                    // 1. Primary Search using MapView.Active.GetFeatures (instant hit-testing)
+                    try
                     {
-                        try
+                        var selectionResult = mapView.GetFeatures(searchEnv);
+                        if (selectionResult != null && selectionResult.Count > 0)
                         {
-                            var spatialFilter = new SpatialQueryFilter
+                            var dict = selectionResult.ToDictionary();
+                            foreach (var kvp in dict)
                             {
-                                FilterGeometry = searchGeom,
-                                SpatialRelationship = SpatialRelationship.Intersects
-                            };
+                                var layer = kvp.Key;
+                                var oids = kvp.Value;
+                                if (layer is not BasicFeatureLayer basicLayer || oids == null || oids.Count == 0) continue;
 
-                            using var rowCursor = layer.Search(spatialFilter);
-                            if (rowCursor == null) continue;
+                                using var rowCursor = basicLayer.Search(new QueryFilter { ObjectIDs = oids });
+                                if (rowCursor == null) continue;
 
-                            while (rowCursor.MoveNext())
-                            {
-                                using var feature = rowCursor.Current as Feature;
-                                if (feature == null) continue;
-
-                                Geometry? rawGeom = null;
-                                try
+                                while (rowCursor.MoveNext())
                                 {
-                                    rawGeom = feature.GetShape();
-                                }
-                                catch
-                                {
-                                    continue;
-                                }
+                                    using var feat = rowCursor.Current as Feature;
+                                    if (feat == null) continue;
 
-                                if (rawGeom == null || rawGeom.IsEmpty) continue;
+                                    var rawGeom = feat.GetShape();
+                                    if (rawGeom == null || rawGeom.IsEmpty) continue;
 
-                                // Always project feature geometry to Map Spatial Reference for consistent distance calculations
-                                var geom = GeometryEngine.Instance.Project(rawGeom, mapSr);
-                                if (geom == null || geom.IsEmpty) continue;
+                                    var geom = GeometryEngine.Instance.Project(rawGeom, mapSr);
+                                    if (geom == null || geom.IsEmpty) continue;
 
-                                if (geom is Polyline polyline)
-                                {
-                                    ProcessPolylineSegments(polyline, projectedClick, mapSr, layer.Name, ref bestStart, ref bestEnd, ref minDistance, ref featureDesc);
-                                }
-                                else if (geom is Polygon polygon)
-                                {
-                                    ProcessPolygonSegments(polygon, projectedClick, mapSr, layer.Name, ref bestStart, ref bestEnd, ref minDistance, ref featureDesc);
+                                    if (geom is Polyline polyline)
+                                    {
+                                        ProcessPolylineSegments(polyline, projectedClick, mapSr, basicLayer.Name, ref bestStart, ref bestEnd, ref minDistance, ref desc);
+                                    }
+                                    else if (geom is Polygon polygon)
+                                    {
+                                        ProcessPolygonSegments(polygon, projectedClick, mapSr, basicLayer.Name, ref bestStart, ref bestEnd, ref minDistance, ref desc);
+                                    }
                                 }
                             }
                         }
-                        catch
+                    }
+                    catch
+                    {
+                        // Fallback to layer-by-layer spatial query
+                    }
+
+                    // 2. Fallback Search across all visible FeatureLayers if GetFeatures returned no segments
+                    if (bestStart == null || bestEnd == null)
+                    {
+                        var layers = mapView.Map.GetLayersAsFlattenedList()
+                            .OfType<BasicFeatureLayer>()
+                            .Where(l => l.IsVisible)
+                            .ToList();
+
+                        foreach (var layer in layers)
                         {
-                            // Skip layer gracefully if locked, remote, or inaccessible
-                            continue;
+                            try
+                            {
+                                var spatialFilter = new SpatialQueryFilter
+                                {
+                                    FilterGeometry = searchEnv,
+                                    SpatialRelationship = SpatialRelationship.Intersects
+                                };
+
+                                using var rowCursor = layer.Search(spatialFilter);
+                                if (rowCursor == null) continue;
+
+                                while (rowCursor.MoveNext())
+                                {
+                                    using var feature = rowCursor.Current as Feature;
+                                    if (feature == null) continue;
+
+                                    Geometry? rawGeom = null;
+                                    try
+                                    {
+                                        rawGeom = feature.GetShape();
+                                    }
+                                    catch
+                                    {
+                                        continue;
+                                    }
+
+                                    if (rawGeom == null || rawGeom.IsEmpty) continue;
+
+                                    var geom = GeometryEngine.Instance.Project(rawGeom, mapSr);
+                                    if (geom == null || geom.IsEmpty) continue;
+
+                                    if (geom is Polyline polyline)
+                                    {
+                                        ProcessPolylineSegments(polyline, projectedClick, mapSr, layer.Name, ref bestStart, ref bestEnd, ref minDistance, ref desc);
+                                    }
+                                    else if (geom is Polygon polygon)
+                                    {
+                                        ProcessPolygonSegments(polygon, projectedClick, mapSr, layer.Name, ref bestStart, ref bestEnd, ref minDistance, ref desc);
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                continue;
+                            }
                         }
                     }
 
                     if (bestStart != null && bestEnd != null)
                     {
-                        if (dockPane != null)
-                        {
-                            dockPane.Activate();
-                            dockPane.SetAlignmentLine(bestStart.X, bestStart.Y, bestEnd.X, bestEnd.Y, featureDesc);
-                        }
-                    }
-                    else
-                    {
-                        if (dockPane != null)
-                        {
-                            dockPane.StatusText = "No line or polygon edge found within click tolerance. Try clicking closer to a boundary.";
-                        }
+                        x1 = bestStart.X;
+                        y1 = bestStart.Y;
+                        x2 = bestEnd.X;
+                        y2 = bestEnd.Y;
+                        featureDesc = desc;
+                        found = true;
                     }
                 });
+
+                if (found && dockPane != null)
+                {
+                    dockPane.Activate();
+                    dockPane.SetOrientationFromSegment(x1, y1, x2, y2, featureDesc);
+                }
+                else if (!found && dockPane != null)
+                {
+                    dockPane.StatusText = "⚠ No line or polygon edge found within click tolerance. Try clicking directly on a visible feature boundary.";
+                }
             }
             catch (Exception ex)
             {

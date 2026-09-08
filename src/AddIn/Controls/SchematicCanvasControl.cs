@@ -11,8 +11,8 @@ using ParcelBuilder.Core.Models;
 namespace ParcelBuilder.AddIn.Controls
 {
     /// <summary>
-    /// High-performance vector canvas rendering the schematic block layout,
-    /// dynamic parcel outlines, sequence labels, chamfers, hover tooltips,
+    /// High-performance vector canvas rendering the schematic block layout with 4 surrounding streets,
+    /// dynamic parcel outlines, sequence labels, chamfers, electric rooms, hover tooltips,
     /// interactive parcel selection, and interactive anchor point snapping.
     /// </summary>
     public class SchematicCanvasControl : FrameworkElement
@@ -28,6 +28,13 @@ namespace ParcelBuilder.AddIn.Controls
             DependencyProperty.Register(
                 nameof(SelectedParcelId),
                 typeof(string),
+                typeof(SchematicCanvasControl),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault | FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty SelectedCornerPositionProperty =
+            DependencyProperty.Register(
+                nameof(SelectedCornerPosition),
+                typeof(CornerPosition?),
                 typeof(SchematicCanvasControl),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault | FrameworkPropertyMetadataOptions.AffectsRender));
 
@@ -57,6 +64,12 @@ namespace ParcelBuilder.AddIn.Controls
             set => SetValue(SelectedParcelIdProperty, value);
         }
 
+        public CornerPosition? SelectedCornerPosition
+        {
+            get => (CornerPosition?)GetValue(SelectedCornerPositionProperty);
+            set => SetValue(SelectedCornerPositionProperty, value);
+        }
+
         public BlockAnchorPoint? AnchorPoint
         {
             get => (BlockAnchorPoint?)GetValue(AnchorPointProperty);
@@ -73,9 +86,11 @@ namespace ParcelBuilder.AddIn.Controls
 
         private readonly Brush _sideABrush = new SolidColorBrush(Color.FromArgb(200, 41, 182, 246)); // #29B6F6
         private readonly Brush _sideBBrush = new SolidColorBrush(Color.FromArgb(200, 171, 71, 188)); // #AB47BC
+        private readonly Brush _electricRoomBrush = new SolidColorBrush(Color.FromArgb(230, 255, 145, 0)); // Amber/Orange #FF9100
         private readonly Brush _selectedBrush = new SolidColorBrush(Color.FromRgb(0, 229, 255));      // #00E5FF
         private readonly Brush _hoverBrush = new SolidColorBrush(Color.FromArgb(240, 77, 208, 225));   // #4DD0E1
         private readonly Pen _borderPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1.2);
+        private readonly Pen _electricRoomPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 64)), 1.8);
         private readonly Pen _selectedPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 255)), 2.5);
         private readonly Pen _spinePen = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 229, 255)), 1.2)
         {
@@ -92,14 +107,119 @@ namespace ParcelBuilder.AddIn.Controls
             ClipToBounds = true;
             _sideABrush.Freeze();
             _sideBBrush.Freeze();
+            _electricRoomBrush.Freeze();
             _selectedBrush.Freeze();
             _hoverBrush.Freeze();
             _borderPen.Freeze();
+            _electricRoomPen.Freeze();
             _selectedPen.Freeze();
             _spinePen.Freeze();
 
             MouseMove += OnCanvasMouseMove;
             MouseLeave += OnCanvasMouseLeave;
+            MouseDown += OnCanvasMouseDown;
+        }
+
+        private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var pos = e.GetPosition(this);
+
+            // 1. Check anchor handle click if handles visible
+            if (ShowAnchorHandles)
+            {
+                foreach (var anchor in _renderedAnchors)
+                {
+                    double dist = Math.Sqrt(Math.Pow(pos.X - anchor.ScreenPt.X, 2) + Math.Pow(pos.Y - anchor.ScreenPt.Y, 2));
+                    if (dist <= SnapThreshold)
+                    {
+                        AnchorPoint = anchor.Type;
+                        if (Configuration?.Alignment != null)
+                        {
+                            Configuration.Alignment.AnchorPoint = anchor.Type;
+                        }
+                        InvalidateVisual();
+                        return;
+                    }
+                }
+            }
+
+            // 2. Check parcel polygon click
+            for (int i = _renderedPolygons.Count - 1; i >= 0; i--)
+            {
+                var item = _renderedPolygons[i];
+                if (IsPointInsidePolygon(pos, item.ScreenPolygon))
+                {
+                    SelectedParcelId = item.Parcel.Id;
+
+                    // Automatically determine if this clicked parcel corresponds to a corner
+                    if (item.Parcel.Side == ParcelSide.SideA && item.Parcel.Sequence == 1)
+                        SelectedCornerPosition = CornerPosition.SideAStart;
+                    else if (item.Parcel.Side == ParcelSide.SideA && item.Parcel.Sequence == (Configuration?.SideA.ParcelCount ?? 1))
+                        SelectedCornerPosition = CornerPosition.SideAEnd;
+                    else if (item.Parcel.Side == ParcelSide.SideB && item.Parcel.Sequence == 1)
+                        SelectedCornerPosition = CornerPosition.SideBStart;
+                    else if (item.Parcel.Side == ParcelSide.SideB && item.Parcel.Sequence == (Configuration?.SideB.ParcelCount ?? 1))
+                        SelectedCornerPosition = CornerPosition.SideBEnd;
+
+                    InvalidateVisual();
+                    return;
+                }
+            }
+        }
+
+        private void OnCanvasMouseMove(object sender, MouseEventArgs e)
+        {
+            var pos = e.GetPosition(this);
+            string? foundParcelId = null;
+            BlockAnchorPoint? foundAnchor = null;
+
+            if (ShowAnchorHandles)
+            {
+                foreach (var anchor in _renderedAnchors)
+                {
+                    double dist = Math.Sqrt(Math.Pow(pos.X - anchor.ScreenPt.X, 2) + Math.Pow(pos.Y - anchor.ScreenPt.Y, 2));
+                    if (dist <= SnapThreshold)
+                    {
+                        foundAnchor = anchor.Type;
+                        Cursor = Cursors.Hand;
+                        break;
+                    }
+                }
+            }
+
+            if (foundAnchor == null)
+            {
+                for (int i = _renderedPolygons.Count - 1; i >= 0; i--)
+                {
+                    var item = _renderedPolygons[i];
+                    if (IsPointInsidePolygon(pos, item.ScreenPolygon))
+                    {
+                        foundParcelId = item.Parcel.Id;
+                        Cursor = Cursors.Hand;
+                        break;
+                    }
+                }
+            }
+
+            if (foundAnchor == null && foundParcelId == null)
+            {
+                Cursor = Cursors.Arrow;
+            }
+
+            if (_hoveredParcelId != foundParcelId || _hoveredAnchor != foundAnchor)
+            {
+                _hoveredParcelId = foundParcelId;
+                _hoveredAnchor = foundAnchor;
+                InvalidateVisual();
+            }
+        }
+
+        private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
+        {
+            _hoveredParcelId = null;
+            _hoveredAnchor = null;
+            Cursor = Cursors.Arrow;
+            InvalidateVisual();
         }
 
         protected override void OnRender(DrawingContext dc)
@@ -117,7 +237,7 @@ namespace ParcelBuilder.AddIn.Controls
                     FlowDirection.LeftToRight,
                     new Typeface("Segoe UI"),
                     12,
-                    Brushes.Gray,
+                    new SolidColorBrush(Color.FromRgb(148, 163, 184)),
                     VisualTreeHelper.GetDpi(this).PixelsPerDip);
                 dc.DrawText(text, new Point((ActualWidth - text.Width) / 2, (ActualHeight - text.Height) / 2));
                 return;
@@ -136,9 +256,10 @@ namespace ParcelBuilder.AddIn.Controls
             double geomWidth = Math.Max(1.0, maxX - minX);
             double geomHeight = Math.Max(1.0, maxY - minY);
 
-            double topMargin = 34.0;
-            double bottomMargin = (config.Arrangement == ArrangementMode.BackToBack) ? 34.0 : 20.0;
-            double sideMargin = 32.0;
+            // Generous margins to display street labels on all 4 sides (Top, Bottom, Left, Right)
+            double topMargin = 28.0;
+            double bottomMargin = (config.Arrangement == ArrangementMode.BackToBack) ? 28.0 : 18.0;
+            double sideMargin = 45.0; // Margin for left and right cross streets
 
             double availWidth = Math.Max(10.0, width - (sideMargin * 2));
             double availHeight = Math.Max(10.0, height - (topMargin + bottomMargin));
@@ -157,30 +278,62 @@ namespace ParcelBuilder.AddIn.Controls
                 return new Point(px, py);
             }
 
-            // Street A Header
+            // 1. Street A Header (Top Street)
             var streetAText = new FormattedText(
-                $"{config.SideA.StreetLabel}{(config.SideA.IsReference ? " (Reference)" : "")} — {config.SideA.TotalFrontage:F0}m",
+                $"▲ {config.SideA.StreetLabel}{(config.SideA.IsReference ? " (Reference)" : "")} — {config.SideA.TotalFrontage:F0}m",
                 CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
-                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
                 10,
                 new SolidColorBrush(Color.FromRgb(41, 182, 246)),
                 VisualTreeHelper.GetDpi(this).PixelsPerDip);
-            dc.DrawText(streetAText, new Point((width - streetAText.Width) / 2, 8));
+            dc.DrawText(streetAText, new Point((width - streetAText.Width) / 2, 6));
 
-            // Street B Footer if Back-to-Back
+            // 2. Street B Footer (Bottom Street)
             if (config.Arrangement == ArrangementMode.BackToBack && config.SideB.GeneratedParcels.Count > 0)
             {
                 var streetBText = new FormattedText(
-                    $"{config.SideB.StreetLabel} — {config.SideB.TotalFrontage:F0}m",
+                    $"▼ {config.SideB.StreetLabel} — {config.SideB.TotalFrontage:F0}m",
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
-                    new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                    new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
                     10,
                     new SolidColorBrush(Color.FromRgb(171, 71, 188)),
                     VisualTreeHelper.GetDpi(this).PixelsPerDip);
-                dc.DrawText(streetBText, new Point((width - streetBText.Width) / 2, height - 22));
+                dc.DrawText(streetBText, new Point((width - streetBText.Width) / 2, height - 20));
             }
+
+            // 3. Left Cross Street (West / Left Street)
+            string leftStreetName = !string.IsNullOrWhiteSpace(config.Corner?.LeftStreetLabel) ? config.Corner.LeftStreetLabel : "Left Cross St (الشارع الأيسر)";
+            var leftStreetText = new FormattedText(
+                $"◀ {leftStreetName}",
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                9,
+                new SolidColorBrush(Color.FromRgb(0, 191, 165)),
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+            // Draw left street rotated vertically
+            dc.PushTransform(new RotateTransform(-90, 12, startY + (drawHeight / 2)));
+            dc.DrawText(leftStreetText, new Point(12 - (leftStreetText.Width / 2), startY + (drawHeight / 2) - 6));
+            dc.Pop();
+
+            // 4. Right Cross Street (East / Right Street)
+            string rightStreetName = !string.IsNullOrWhiteSpace(config.Corner?.RightStreetLabel) ? config.Corner.RightStreetLabel : "Right Cross St (الشارع الأيمن)";
+            var rightStreetText = new FormattedText(
+                $"{rightStreetName} ▶",
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                9,
+                new SolidColorBrush(Color.FromRgb(0, 191, 165)),
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+            // Draw right street rotated vertically
+            dc.PushTransform(new RotateTransform(90, width - 12, startY + (drawHeight / 2)));
+            dc.DrawText(rightStreetText, new Point((width - 12) - (rightStreetText.Width / 2), startY + (drawHeight / 2) - 6));
+            dc.Pop();
 
             // Draw Parcels
             foreach (var parcel in allParcels)
@@ -203,23 +356,30 @@ namespace ParcelBuilder.AddIn.Controls
 
                 bool isSelected = parcel.Id == SelectedParcelId;
                 bool isHovered = parcel.Id == _hoveredParcelId && _hoveredAnchor == null;
+                bool isElectricRoom = parcel.Type == "Electric Room" || parcel.Id == "ER-01";
 
                 Brush fillBrush = isSelected
                     ? _selectedBrush
-                    : (isHovered ? _hoverBrush : (parcel.Side == ParcelSide.SideA ? _sideABrush : _sideBBrush));
-                Pen pen = isSelected ? _selectedPen : _borderPen;
+                    : (isHovered
+                        ? _hoverBrush
+                        : (isElectricRoom
+                            ? _electricRoomBrush
+                            : (parcel.Side == ParcelSide.SideA ? _sideABrush : _sideBBrush)));
+
+                Pen pen = isSelected ? _selectedPen : (isElectricRoom ? _electricRoomPen : _borderPen);
 
                 dc.DrawGeometry(fillBrush, pen, streamGeometry);
 
-                // Sequence number label
+                // Sequence number label or ER label (ensure high contrast: dark navy on cyan selection, crisp white otherwise)
                 var center = Transform(parcel.Centroid);
+                string labelText = isElectricRoom ? "⚡ ER" : parcel.Sequence.ToString();
                 var numText = new FormattedText(
-                    parcel.Sequence.ToString(),
+                    labelText,
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
-                    11,
-                    isSelected ? Brushes.Black : Brushes.White,
+                    isElectricRoom ? 10 : 11,
+                    isSelected ? new SolidColorBrush(Color.FromRgb(11, 19, 43)) : Brushes.White,
                     VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
                 dc.DrawText(numText, new Point(center.X - (numText.Width / 2), center.Y - (numText.Height / 2)));
@@ -249,192 +409,39 @@ namespace ParcelBuilder.AddIn.Controls
                 double centroidY = config.Arrangement == ArrangementMode.BackToBack ? 0.0 : depthA / 2.0;
                 _renderedAnchors.Add((BlockAnchorPoint.BlockCenter, "Block Centroid", Transform(new Point2D(maxFrontage / 2.0, centroidY)), activeAnchor == BlockAnchorPoint.BlockCenter));
 
-                // 1. Draw Inactive Candidate Handles
-                foreach (var anchor in _renderedAnchors.Where(a => !a.IsActive))
+                foreach (var anchor in _renderedAnchors)
                 {
                     bool isHovered = _hoveredAnchor == anchor.Type;
-                    if (isHovered)
+                    double radius = anchor.IsActive ? 8.0 : (isHovered ? 7.0 : 5.0);
+
+                    Brush anchorFill = anchor.IsActive
+                        ? new SolidColorBrush(Color.FromRgb(0, 229, 255))
+                        : (isHovered ? new SolidColorBrush(Color.FromRgb(255, 215, 64)) : new SolidColorBrush(Color.FromArgb(200, 14, 23, 54)));
+                    Pen anchorPen = new Pen(anchor.IsActive ? Brushes.White : new SolidColorBrush(Color.FromRgb(0, 229, 255)), anchor.IsActive ? 2.0 : 1.2);
+
+                    dc.DrawEllipse(anchorFill, anchorPen, anchor.ScreenPt, radius, radius);
+
+                    if (anchor.IsActive)
                     {
-                        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(220, 0, 229, 255)), new Pen(Brushes.White, 2.0), anchor.ScreenPt, 8.5, 8.5);
-                        dc.DrawEllipse(Brushes.White, null, anchor.ScreenPt, 3.5, 3.5);
+                        dc.DrawEllipse(Brushes.White, null, anchor.ScreenPt, 3.0, 3.0);
                     }
-                    else
-                    {
-                        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(190, 15, 23, 42)), new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 229, 255)), 1.4), anchor.ScreenPt, 6.0, 6.0);
-                        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)), null, anchor.ScreenPt, 2.0, 2.0);
-                    }
-                }
-
-                // 2. Draw Active Anchor (Prominent Glowing Marker + Badge)
-                var activeItem = _renderedAnchors.FirstOrDefault(a => a.IsActive);
-                if (activeItem.Type != 0 || activeItem.IsActive)
-                {
-                    // Glowing outer pulse ring
-                    dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 0, 229, 255)), new Pen(new SolidColorBrush(Color.FromRgb(0, 229, 255)), 2.5), activeItem.ScreenPt, 13.0, 13.0);
-                    // Inner glowing amber/gold target
-                    dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 0)), new Pen(Brushes.White, 2.0), activeItem.ScreenPt, 6.0, 6.0);
-
-                    // Badge Pill Label
-                    var badgeText = new FormattedText(
-                        $"⚓ Anchor: {activeItem.Name}",
-                        CultureInfo.CurrentCulture,
-                        FlowDirection.LeftToRight,
-                        new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
-                        10,
-                        new SolidColorBrush(Color.FromRgb(0, 229, 255)),
-                        VisualTreeHelper.GetDpi(this).PixelsPerDip);
-
-                    double badgeX = activeItem.ScreenPt.X + 16;
-                    double badgeY = activeItem.ScreenPt.Y - 10;
-                    if (badgeX + badgeText.Width + 14 > width)
-                    {
-                        badgeX = activeItem.ScreenPt.X - badgeText.Width - 22;
-                    }
-                    if (badgeY < 6) badgeY = activeItem.ScreenPt.Y + 12;
-
-                    var bgRect = new Rect(badgeX - 6, badgeY - 3, badgeText.Width + 12, badgeText.Height + 6);
-                    dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(240, 11, 19, 43)), new Pen(new SolidColorBrush(Color.FromRgb(0, 229, 255)), 1.2), bgRect, 4, 4);
-                    dc.DrawText(badgeText, new Point(badgeX, badgeY));
                 }
             }
         }
 
-        protected override void OnMouseDown(MouseButtonEventArgs e)
+        private static bool IsPointInsidePolygon(Point pt, List<Point> poly)
         {
-            base.OnMouseDown(e);
-            if (e.ChangedButton != MouseButton.Left) return;
-
-            var pos = e.GetPosition(this);
-
-            // 1. Check Interactive Anchor Snap Hit
-            if (ShowAnchorHandles && _renderedAnchors.Count > 0)
-            {
-                foreach (var anchor in _renderedAnchors)
-                {
-                    double dist = (pos - anchor.ScreenPt).Length;
-                    if (dist <= SnapThreshold)
-                    {
-                        AnchorPoint = anchor.Type;
-                        if (Configuration?.Alignment != null)
-                        {
-                            Configuration.Alignment.AnchorPoint = anchor.Type;
-                        }
-                        InvalidateVisual();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-
-            // 2. Parcel Click
-            var clicked = _renderedPolygons.FirstOrDefault(p => IsPointInPolygon(pos, p.ScreenPolygon));
-            if (clicked.Parcel != null)
-            {
-                SelectedParcelId = clicked.Parcel.Id;
-            }
-        }
-
-        private void OnCanvasMouseMove(object sender, MouseEventArgs e)
-        {
-            var pos = e.GetPosition(this);
-
-            // 1. Check Anchor Snap first
-            BlockAnchorPoint? nearestAnchor = null;
-            string? anchorName = null;
-
-            if (ShowAnchorHandles && _renderedAnchors.Count > 0)
-            {
-                foreach (var anchor in _renderedAnchors)
-                {
-                    double dist = (pos - anchor.ScreenPt).Length;
-                    if (dist <= SnapThreshold)
-                    {
-                        nearestAnchor = anchor.Type;
-                        anchorName = anchor.Name;
-                        break;
-                    }
-                }
-            }
-
-            if (nearestAnchor != null)
-            {
-                if (_hoveredAnchor != nearestAnchor)
-                {
-                    _hoveredAnchor = nearestAnchor;
-                    _hoveredParcelId = null;
-                    Cursor = Cursors.Cross;
-                    ToolTip = $"🎯 Snap Reference Anchor: {anchorName}\n(Click to align block origin P1 to this point)";
-                    InvalidateVisual();
-                }
-                return;
-            }
-
-            if (_hoveredAnchor != null)
-            {
-                _hoveredAnchor = null;
-                Cursor = Cursors.Arrow;
-                ToolTip = null;
-                InvalidateVisual();
-            }
-
-            // 2. Fallback to Parcel Hover
-            var hovered = _renderedPolygons.FirstOrDefault(p => IsPointInPolygon(pos, p.ScreenPolygon));
-            string? newHoveredId = hovered.Parcel?.Id;
-            if (_hoveredParcelId != newHoveredId)
-            {
-                _hoveredParcelId = newHoveredId;
-                Cursor = _hoveredParcelId != null ? Cursors.Hand : Cursors.Arrow;
-
-                if (hovered.Parcel != null)
-                {
-                    ToolTip = $"Parcel #{hovered.Parcel.Sequence} ({hovered.Parcel.Side})\n" +
-                              $"Frontage: {hovered.Parcel.Frontage:F1} m\n" +
-                              $"Depth: {hovered.Parcel.Depth:F1} m\n" +
-                              $"Area: {hovered.Parcel.Area:N0} m²\n" +
-                              $"Type: {hovered.Parcel.Type}";
-                }
-                else
-                {
-                    ToolTip = null;
-                }
-
-                InvalidateVisual();
-            }
-        }
-
-        private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
-        {
-            bool needInvalidate = false;
-            if (_hoveredParcelId != null)
-            {
-                _hoveredParcelId = null;
-                needInvalidate = true;
-            }
-            if (_hoveredAnchor != null)
-            {
-                _hoveredAnchor = null;
-                needInvalidate = true;
-            }
-
-            if (needInvalidate)
-            {
-                ToolTip = null;
-                Cursor = Cursors.Arrow;
-                InvalidateVisual();
-            }
-        }
-
-        private static bool IsPointInPolygon(Point point, List<Point> polygon)
-        {
-            if (polygon == null || polygon.Count < 3) return false;
+            if (poly.Count < 3) return false;
             bool inside = false;
-            for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+            int j = poly.Count - 1;
+            for (int i = 0; i < poly.Count; i++)
             {
-                if (((polygon[i].Y > point.Y) != (polygon[j].Y > point.Y)) &&
-                    (point.X < (polygon[j].X - polygon[i].X) * (point.Y - polygon[i].Y) / (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+                if (((poly[i].Y <= pt.Y && pt.Y < poly[j].Y) || (poly[j].Y <= pt.Y && pt.Y < poly[i].Y)) &&
+                    (pt.X < (poly[j].X - poly[i].X) * (pt.Y - poly[i].Y) / (poly[j].Y - poly[i].Y) + poly[i].X))
                 {
                     inside = !inside;
                 }
+                j = i;
             }
             return inside;
         }

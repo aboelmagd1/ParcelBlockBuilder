@@ -3,7 +3,7 @@
         xmlns="http://schemas.esri.com/DADF/Registry"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
-  <AddInInfo id="{3c88b90e-b7d1-4cb5-827d-92265005b630}" version="1.0" desktopVersion="3.4.0">
+  <AddInInfo id="{3c88b90e-b7d1-4cb5-827d-92265005b630}" version="1.0" desktopVersion="3.3.0">
     <Name>Parcel Builder</Name>
     <Description>Professional Parcel and Block Builder Add-in for ArcGIS Pro. Create blocks from parcel dimensions, extract configurations from existing GIS parcels, preview, validate, and generate feature classes.</Description>
     <Image>Images\ParcelBuilder32.png</Image>
@@ -28,6 +28,8 @@
         </group>
         <group id="ParcelBuilder_ToolsGroup" caption="Map Capture Tools" appearsOnAddInTab="true">
           <tool refID="ParcelBuilder_SelectParcelTool" size="large" />
+          <tool refID="ParcelBuilder_SelectElectricRoomLocationTool" size="large" />
+          <tool refID="ParcelBuilder_SelectBasePointTool" size="large" />
           <tool refID="ParcelBuilder_AlignmentTool" size="large" />
           <tool refID="ParcelBuilder_SelectAlignmentFeatureTool" size="large" />
         </group>
@@ -61,9 +63,35 @@
           </tooltip>
         </tool>
 
+        <!-- Interactive Electric Room / Substation Placement Tool -->
+        <tool id="ParcelBuilder_SelectElectricRoomLocationTool"
+              caption="Place Substation"
+              className="SelectElectricRoomLocationTool"
+              loadOnClick="true"
+              smallImage="Images\ParcelBuilder16.png"
+              largeImage="Images\ParcelBuilder32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="Place Electric Room / Substation">
+            Click a location on the street frontage on the map to place and carve the Electric Room footprint.
+          </tooltip>
+        </tool>
+
+        <!-- Interactive Base Point Placement Tool -->
+        <tool id="ParcelBuilder_SelectBasePointTool"
+              caption="Set Base Point"
+              className="SelectBasePointTool"
+              loadOnClick="true"
+              smallImage="Images\ParcelBuilder16.png"
+              largeImage="Images\ParcelBuilder32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="Select Base Point on Map">
+            Click a location on the map with snapping to anchor the selected Base Point target location.
+          </tooltip>
+        </tool>
+
         <!-- 2-Point Alignment Tool -->
         <tool id="ParcelBuilder_AlignmentTool"
-              caption="Set Alignment"
+              caption="2-Point Orientation"
               className="AlignmentTool"
               loadOnClick="true"
               smallImage="Images\ParcelBuilder16.png"
