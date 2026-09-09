@@ -16,6 +16,12 @@ namespace ParcelBuilder.Core.Geometry
         public bool Passed { get; set; } = true;
         public bool IsWarningOnly { get; set; } = false;
         public string Details { get; set; } = "Passed";
+
+        public string StatusIcon => Passed ? "✓" : (IsWarningOnly ? "⚠" : "✕");
+        public string StatusText => Passed ? "Passed" : (IsWarningOnly ? "Warning" : "Failed");
+        public string StatusColor => Passed ? "#00E5A3" : (IsWarningOnly ? "#FFB300" : "#FF5252");
+        public string CardBackground => Passed ? "#0C152E" : (IsWarningOnly ? "#1E170A" : "#240E14");
+        public string CardBorder => Passed ? "#1E294B" : (IsWarningOnly ? "#61460B" : "#611320");
     }
 
     /// <summary>
@@ -236,9 +242,10 @@ namespace ParcelBuilder.Core.Geometry
                     // Check bounding envelope overlap first
                     if (DoEnvelopesOverlap(p1.PolygonRing, p2.PolygonRing))
                     {
-                        // Check if interior centers overlap
                         double distCentroids = Math.Sqrt(Math.Pow(p1.Centroid.X - p2.Centroid.X, 2) + Math.Pow(p1.Centroid.Y - p2.Centroid.Y, 2));
-                        if (distCentroids < 0.01 && p1.Id != p2.Id)
+                        bool interiorOverlap = IsPointInPolygon(p1.Centroid, p2.PolygonRing) || IsPointInPolygon(p2.Centroid, p1.PolygonRing);
+
+                        if ((distCentroids < 0.01 || interiorOverlap) && p1.Id != p2.Id)
                         {
                             overlaps.Add($"{p1.Id} & {p2.Id}");
                             result.AddError("R2_OVERLAP", $"Parcels {p1.Id} and {p2.Id} overlap spatially.");
@@ -296,13 +303,31 @@ namespace ParcelBuilder.Core.Geometry
                 Description = "No unintended gaps along the shared spine and continuous block frontage."
             };
 
+            var gapIssues = new List<string>();
+
             // Check if Side A has gap in frontage continuity
             double sumFrontageA = config.SideA.GeneratedParcels.Where(p => p.Id != "ER-01").Sum(p => p.Frontage);
             if (config.SideA.GeneratedParcels.Count > 0 && Math.Abs(sumFrontageA - config.SideA.TotalFrontage) > 0.1)
             {
+                gapIssues.Add($"Side A frontage gap ({sumFrontageA:F1}m vs total {config.SideA.TotalFrontage:F1}m)");
+                result.AddWarning("R4_FRONTAGE_GAP_A", $"Side A frontage gap detected ({sumFrontageA:F1}m vs total {config.SideA.TotalFrontage:F1}m).");
+            }
+
+            // Check Side B if back-to-back
+            if (config.Arrangement == ArrangementMode.BackToBack && config.SideB.GeneratedParcels.Count > 0)
+            {
+                double sumFrontageB = config.SideB.GeneratedParcels.Where(p => p.Id != "ER-01").Sum(p => p.Frontage);
+                if (Math.Abs(sumFrontageB - config.SideB.TotalFrontage) > 0.1)
+                {
+                    gapIssues.Add($"Side B frontage gap ({sumFrontageB:F1}m vs total {config.SideB.TotalFrontage:F1}m)");
+                    result.AddWarning("R4_FRONTAGE_GAP_B", $"Side B frontage gap detected ({sumFrontageB:F1}m vs total {config.SideB.TotalFrontage:F1}m).");
+                }
+            }
+
+            if (gapIssues.Count > 0)
+            {
                 item.Passed = false;
-                item.Details = $"Side A frontage gap detected ({sumFrontageA:F1}m vs total {config.SideA.TotalFrontage:F1}m).";
-                result.AddWarning("R4_FRONTAGE_GAP", item.Details);
+                item.Details = string.Join("; ", gapIssues);
             }
             else
             {
@@ -536,6 +561,21 @@ namespace ParcelBuilder.Core.Geometry
             if (mag1 < 1e-7 || mag2 < 1e-7) return 180.0;
             double cos = Math.Clamp(dot / (mag1 * mag2), -1.0, 1.0);
             return Math.Acos(cos) * (180.0 / Math.PI);
+        }
+
+        private static bool IsPointInPolygon(Point2D pt, List<Point2D> polygon)
+        {
+            if (polygon == null || polygon.Count < 3) return false;
+            bool inside = false;
+            for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+            {
+                if (((polygon[i].Y > pt.Y) != (polygon[j].Y > pt.Y)) &&
+                    (pt.X < (polygon[j].X - polygon[i].X) * (pt.Y - polygon[i].Y) / (polygon[j].Y - polygon[i].Y + 1e-12) + polygon[i].X))
+                {
+                    inside = !inside;
+                }
+            }
+            return inside;
         }
     }
 }

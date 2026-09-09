@@ -3,7 +3,7 @@
         xmlns="http://schemas.esri.com/DADF/Registry"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
-  <AddInInfo id="{3c88b90e-b7d1-4cb5-827d-92265005b630}" version="1.0" desktopVersion="3.3.0">
+  <AddInInfo id="{3c88b90e-b7d1-4cb5-827d-92265005b630}" version="1.0" desktopVersion="3.0.0">
     <Name>Parcel Builder</Name>
     <Description>Professional Parcel and Block Builder Add-in for ArcGIS Pro. Create blocks from parcel dimensions, extract configurations from existing GIS parcels, preview, validate, and generate feature classes.</Description>
     <Image>Images\ParcelBuilder32.png</Image>

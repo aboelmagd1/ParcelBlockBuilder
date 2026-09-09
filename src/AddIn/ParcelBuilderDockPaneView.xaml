@@ -1761,7 +1761,7 @@
                     <!-- STEP 10: DYNAMIC PREVIEW & INSPECTION (MATCHING 09-DYNAMIC)  -->
                     <!-- ============================================================ -->
                     <StackPanel Visibility="{Binding IsStep10, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="9. Dynamic Preview &amp; Inspection" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="10. Dynamic Preview &amp; Inspection" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Inspect individual parcel dimensions, areas, and interactive vector layout schematic." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <!-- Top Toolbar Banner -->
@@ -1859,29 +1859,70 @@
                     <!-- STEP 11: VALIDATION & GEOMETRY RULES (MATCHING 10-VALIDATION)-->
                     <!-- ============================================================ -->
                     <StackPanel Visibility="{Binding IsStep11, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="10. Validation &amp; Geometry Rules" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="11. Validation &amp; Geometry Rules" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Review geometric integrity, topological checks, and validation error warnings." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <Border Style="{StaticResource CardPanel}">
                             <StackPanel>
                                 <TextBlock Text="Geometry &amp; Parameter Rules Validation" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
-                                <!-- Success or Warning Banner -->
-                                <Border Background="#0D2E24" BorderBrush="#00BFA5" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,14">
+                                <!-- Success Banner (Zero Errors & Zero Warnings) -->
+                                <Border Background="#0D2E24" BorderBrush="#00BFA5" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,14" Visibility="{Binding IsValidationAllClean, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="✓ Configuration and geometry rules passed with zero blocking errors." FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource AccentMintBrush}"/>
                                 </Border>
 
-                                <!-- 10 Explicit Rules List -->
+                                <!-- Warning Banner (Warnings Exist, Zero Blocking Errors) -->
+                                <Border Background="#261E0A" BorderBrush="#FFB300" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,14" Visibility="{Binding HasValidationWarnings, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="⚠ Configuration passed with cadastre warnings. Review warnings below before proceeding." FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource AccentAmberBrush}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Error Banner (Blocking Errors Exist) -->
+                                <Border Background="#2E1018" BorderBrush="#FF5252" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,14" Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="✕ Configuration has blocking validation errors. Please resolve them before generating output." FontWeight="SemiBold" FontSize="11" Foreground="#FF5252"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Blocking Errors List (if any) -->
+                                <ItemsControl ItemsSource="{Binding ValidationErrors}" Visibility="{Binding HasValidationErrors, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#1C0E14" BorderBrush="#8C1F32" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="✕ " FontWeight="Bold" FontSize="12" Foreground="#FF5252" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding}" FontSize="11" Foreground="#FFCDD2" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Explicit Rules List (10 Cadastre Rules + Substation & Alignment) -->
                                 <ItemsControl ItemsSource="{Binding RuleValidationItems}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                                            <Border Background="{Binding CardBackground}" BorderBrush="{Binding CardBorder}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,6">
                                                 <Grid>
-                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusIcon}" FontWeight="Bold" FontSize="12" Margin="0,0,10,0"/>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding StatusIcon}" FontWeight="Bold" FontSize="12" Foreground="{Binding StatusColor}" Margin="0,0,10,0"/>
                                                         <TextBlock Text="{Binding RuleName}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource PrimaryTextBrush}"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="{Binding StatusText}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentMintBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding StatusText}" FontSize="10" FontWeight="Bold" Foreground="{Binding StatusColor}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+                                                    <!-- Detailed Rule Status Explanation -->
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Details}" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="22,4,0,0" TextWrapping="Wrap"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -1895,7 +1936,7 @@
                     <!-- STEP 12: FINAL REVIEW & OUTPUT (MATCHING 11-FINAL)           -->
                     <!-- ============================================================ -->
                     <StackPanel Visibility="{Binding IsStep12, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="11. Final Review &amp; Feature Class Output" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="12. Final Review &amp; Feature Class Output" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Review the final configuration summary blueprint and export to Geodatabase Feature Class." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <Grid>

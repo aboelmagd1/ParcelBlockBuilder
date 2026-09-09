@@ -182,6 +182,84 @@ namespace ParcelBuilder.Tests
             Assert.Equal(10, ruleItems.Count);
             Assert.True(ruleItems.All(r => r.Passed));
             Assert.True(result.IsValid);
+
+            // Verify RuleCheckItem visual helper properties
+            foreach (var item in ruleItems)
+            {
+                Assert.Equal("✓", item.StatusIcon);
+                Assert.Equal("Passed", item.StatusText);
+                Assert.Equal("#00E5A3", item.StatusColor);
+                Assert.Equal("#0C152E", item.CardBackground);
+                Assert.False(string.IsNullOrWhiteSpace(item.Details));
+            }
+        }
+
+        [Fact]
+        public void TopologyValidation_DetectsDuplicateParcelIds()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 2;
+            config.SideB.ParcelCount = 0;
+            config.Arrangement = ArrangementMode.SingleSided;
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            // Force duplicate ID
+            config.SideA.GeneratedParcels[1].Id = config.SideA.GeneratedParcels[0].Id;
+
+            var (result, ruleItems) = TopologyValidationEngine.Instance.ValidateBlock(config);
+
+            var dupRule = ruleItems.FirstOrDefault(r => r.RuleNumber == 3);
+            Assert.NotNull(dupRule);
+            Assert.False(dupRule.Passed);
+            Assert.Equal("✕", dupRule.StatusIcon);
+            Assert.Equal("Failed", dupRule.StatusText);
+            Assert.Equal("#FF5252", dupRule.StatusColor);
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void TopologyValidation_DetectsInvalidGeometryDegenerateArea()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 2;
+            config.SideB.ParcelCount = 0;
+            config.Arrangement = ArrangementMode.SingleSided;
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            // Force degenerate parcel
+            config.SideA.GeneratedParcels[0].PolygonRing.Clear();
+
+            var (result, ruleItems) = TopologyValidationEngine.Instance.ValidateBlock(config);
+
+            var geomRule = ruleItems.FirstOrDefault(r => r.RuleNumber == 1);
+            Assert.NotNull(geomRule);
+            Assert.False(geomRule.Passed);
+            Assert.Equal("✕", geomRule.StatusIcon);
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void TopologyValidation_IncludesAlignmentRule_WhenAnchorPlaced()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 4;
+            config.SideB.ParcelCount = 4;
+            config.Alignment = new AlignmentConfiguration
+            {
+                TargetMapPointX = 500000.0,
+                TargetMapPointY = 2700000.0,
+                AzimuthAngleDegrees = 45.0
+            };
+
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            var (result, ruleItems) = TopologyValidationEngine.Instance.ValidateBlock(config);
+
+            Assert.Equal(11, ruleItems.Count); // 10 Cadastre + 1 Alignment
+            var alignRule = ruleItems.FirstOrDefault(r => r.RuleNumber == 12);
+            Assert.NotNull(alignRule);
+            Assert.True(alignRule.Passed);
+            Assert.Contains("45.0°", alignRule.Details);
         }
     }
 }

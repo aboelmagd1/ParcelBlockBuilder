@@ -169,6 +169,7 @@ namespace ParcelBuilder.AddIn
         {
             1 => !HasFrontageError && !HasDepthError,
             4 => SideACount >= 1 && (Config.Arrangement != ArrangementMode.BackToBack || SideBCount >= 1),
+            11 => IsValidationPassing,
             _ => true
         };
 
@@ -1467,6 +1468,9 @@ namespace ParcelBuilder.AddIn
         public ObservableCollection<string> ValidationErrors { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> ValidationWarnings { get; set; } = new ObservableCollection<string>();
         public bool IsValidationPassing => ValidationErrors.Count == 0;
+        public bool HasValidationErrors => ValidationErrors.Count > 0;
+        public bool HasValidationWarnings => ValidationWarnings.Count > 0;
+        public bool IsValidationAllClean => IsValidationPassing && !HasValidationWarnings;
 
         // --- STEP 12: OUTPUT & PROCESSING ---
         public string OutputFeatureClassName
@@ -1955,6 +1959,10 @@ namespace ParcelBuilder.AddIn
             NotifyPropertyChanged(nameof(HasLengthDifferenceWarning));
             NotifyPropertyChanged(nameof(LengthDifferenceWarningText));
             NotifyPropertyChanged(nameof(IsValidationPassing));
+            NotifyPropertyChanged(nameof(HasValidationErrors));
+            NotifyPropertyChanged(nameof(HasValidationWarnings));
+            NotifyPropertyChanged(nameof(IsValidationAllClean));
+            NotifyPropertyChanged(nameof(IsCurrentStepValid));
             NotifyPropertyChanged(nameof(SelectedParcelModel));
             NotifyPropertyChanged(nameof(AllGeneratedParcels));
             NotifyPropertyChanged(nameof(SelectedParcelFrontage));

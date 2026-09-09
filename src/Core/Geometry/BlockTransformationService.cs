@@ -221,7 +221,8 @@ namespace ParcelBuilder.Core.Geometry
             else if (al.Method == AlignmentMethod.MapSegment)
             {
                 if (string.IsNullOrWhiteSpace(al.SelectedSegmentDescription) ||
-                    !al.SegmentStartX.HasValue || !al.SegmentEndX.HasValue)
+                    !al.SegmentStartX.HasValue || !al.SegmentEndX.HasValue ||
+                    !al.SegmentStartY.HasValue || !al.SegmentEndY.HasValue)
                 {
                     warnings.Add("Map segment has not been selected (using default 90.0° bearing).");
                 }
