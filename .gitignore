@@ -60,7 +60,7 @@ $RECYCLE.BIN/
 
 ####
 *.zip
-
+tests/ParcelBuilder.Tests/
 
 # Keep the final distribution Add-in package (.esriAddinX)
 !AddInPackage/
