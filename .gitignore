@@ -26,7 +26,6 @@
 .agents/
 .gemini/
 scratch/
-tests/
 
 # Test Results & Code Coverage
 [Tt]est[Rr]esult*/
@@ -58,9 +57,11 @@ $RECYCLE.BIN/
 *.dmp
 *.crash
 
-####
+# Tests directory
+tests/
+
+# Archive files
 *.zip
-tests/ParcelBuilder.Tests/
 
 # Keep the final distribution Add-in package (.esriAddinX)
 !AddInPackage/
