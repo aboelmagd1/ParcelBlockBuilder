@@ -26,6 +26,7 @@
 .agents/
 .gemini/
 scratch/
+tests/
 
 # Test Results & Code Coverage
 [Tt]est[Rr]esult*/
@@ -56,6 +57,10 @@ $RECYCLE.BIN/
 # Windows crash dumps & crash logs
 *.dmp
 *.crash
+
+####
+*.zip
+
 
 # Keep the final distribution Add-in package (.esriAddinX)
 !AddInPackage/
