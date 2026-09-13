@@ -7,8 +7,8 @@
     <Name>Parcel Builder</Name>
     <Description>Professional Parcel and Block Builder Add-in for ArcGIS Pro. Create blocks from parcel dimensions, extract configurations from existing GIS parcels, preview, validate, and generate feature classes.</Description>
     <Image>Images\ParcelBuilder32.png</Image>
-    <Author>GIS Architecture Team</Author>
-    <Company>Antigravity CAD/GIS</Company>
+    <Author>Created by Mahmoud Aboelmagd with AI</Author>
+    <Company>Created by Mahmoud Aboelmagd with AI</Company>
     <Date>9/7/2026</Date>
     <Subject>Editing, Geodatabase, Cadastre, Land Administration</Subject>
   </AddInInfo>

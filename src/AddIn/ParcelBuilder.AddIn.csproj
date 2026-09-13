@@ -7,6 +7,9 @@
     <RootNamespace>ParcelBuilder.AddIn</RootNamespace>
     <AssemblyName>ParcelBuilder.AddIn</AssemblyName>
     <LangVersion>latest</LangVersion>
+    <Authors>Created by Mahmoud Aboelmagd with AI</Authors>
+    <Company>Created by Mahmoud Aboelmagd with AI</Company>
+    <Copyright>Created by Mahmoud Aboelmagd with AI</Copyright>
     <ArcGISProDir Condition="'$(ArcGISProDir)' == ''">C:\Program Files\ArcGIS\Pro</ArcGISProDir>
   </PropertyGroup>
 

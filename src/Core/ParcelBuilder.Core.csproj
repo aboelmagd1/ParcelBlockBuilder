@@ -7,6 +7,9 @@
     <RootNamespace>ParcelBuilder</RootNamespace>
     <AssemblyName>ParcelBuilder.Core</AssemblyName>
     <LangVersion>latest</LangVersion>
+    <Authors>Created by Mahmoud Aboelmagd with AI</Authors>
+    <Company>Created by Mahmoud Aboelmagd with AI</Company>
+    <Copyright>Created by Mahmoud Aboelmagd with AI</Copyright>
   </PropertyGroup>
 
 </Project>
