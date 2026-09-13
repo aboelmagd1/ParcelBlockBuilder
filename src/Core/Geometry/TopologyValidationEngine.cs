@@ -42,7 +42,7 @@ namespace ParcelBuilder.Core.Geometry
                 return (result, items);
             }
 
-            var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).ToList();
+            var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).Distinct().ToList();
 
             // 1. Rule 1: No Invalid Geometries
             var r1 = ValidateRule1_InvalidGeometries(allParcels, result);

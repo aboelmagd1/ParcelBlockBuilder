@@ -1242,30 +1242,32 @@ Generate
 
 ---
 
-# 32. UI STRUCTURE
+# 32. UI STRUCTURE & 13-STEP WORKFLOW
 
-Preferred conceptual layout:
+Preferred layout and workflow:
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ PARCEL BUILDER                                              │
-├───────────────┬─────────────────────────┬───────────────────┤
-│ Stepper       │ Configuration            │ Dynamic Preview   │
-│               │                         │                   │
-│ 1 Parcel      │ Current Parameters       │ Schematic         │
-│ 2 Relationship│                         │                   │
-│ 3 Arrangement │ Editable Controls       │ Interactive       │
-│ 4 Count       │                         │                   │
-│ 5 Similarity  │ Exceptions              │                   │
-│ 6 Exceptions  │ Corner                  │                   │
-│ 7 Corner      │ Alignment               │                   │
-│ 8 Alignment   │                         │                   │
-│ 9 Preview     │                         │                   │
-│ 10 Validation │                         │                   │
-│ 11 Generate   │                         │                   │
-├───────────────┴─────────────────────────┴───────────────────┤
-│ Back                         Reset                Next       │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PARCEL BUILDER WORKSTATION                                                  │
+├─────────────────┬─────────────────────────┬─────────────────────────────────┤
+│ Stepper         │ Configuration Area      │ Dynamic Live Schematic Preview  │
+│                 │                         │                                 │
+│ 1 Base Dims     │ Frontage, Depth, Area   │ Real-time Interactive Canvas    │
+│ 2 Relationship  │ Standalone / Block      │                                 │
+│ 3 Arrangement   │ Single / Back-to-Back   │ True geometric aspect ratio     │
+│ 4 Count & Layout│ Counts, street lengths  │                                 │
+│ 5 Similarity    │ Identical / Different   │ Dynamic color coding per type   │
+│ 6 Exceptions    │ Custom Frontage/Depth   │ (Corner, Standard, Electric     │
+│ 7 Chamfer       │ Length / Frontage method│  Room, Modified, Through Parcel)│
+│ 8 Electric Room │ Anchors, handles, offset│                                 │
+│ 9 Split & Merge │ Split & Cross-side merge│ Live hover & selection          │
+│ 10 Alignment    │ Line / 2-Points / Angle │                                 │
+│ 11 Preview      │ Full schematic & GIS map│ Map Overlay (No TOC pollution)  │
+│ 12 Validation   │ Rules, overlap/gap checks│ Multi-level validation badge   │
+│ 13 Final Review │ Summary & GDB export    │ Feature Class Generation        │
+├─────────────────┴─────────────────────────┴─────────────────────────────────┤
+│ ↺ Reset      ← Back                       Undo | Redo            Next →     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 This is conceptual only.
@@ -2626,6 +2628,215 @@ is a coherent, deterministic, maintainable, testable, and extensible workflow.
 
 The implementation must respect the existing ArcGIS Pro Add-in architecture and preserve existing functionality.
 
-**DO NOT CODE YET.**
+---
 
-**ANALYZE THE EXISTING PROJECT FIRST.**
+# 56. 13-STEP CAD/GIS STEPPER WORKFLOW DETAILED SPECIFICATION
+
+The workstation guides the user through 13 sequential, highly coordinated steps:
+
+### Step 1: Base Dimensions (الأبعاد الأساسية)
+- Input: Standard Parcel Frontage ($F$) and Depth ($D$).
+- Area is calculated automatically: $A = F \times D$.
+- Live preview initializes with a single base parcel representation.
+
+### Step 2: Parcel Relationship (طبيعة القطعة)
+- Options:
+  - `Standalone`: A single independent parcel.
+  - `Part of Block`: Part of a larger cadastral block.
+
+### Step 3: Block Arrangement (توزيع البلوك)
+- Options:
+  - `Single-Sided`: Parcels aligned along a single street frontage (Side A).
+  - `Back-to-Back`: Dual rows sharing a common spine (Side A and Side B).
+- Reference street designation (Street A or Street B).
+- Custom vs. Equal parcel count per side toggle.
+
+### Step 4: Parcel Count & Layout (أعداد وتوزيع القطع)
+- Inputs: Parcel Count for Side A ($N_A$) and Parcel Count for Side B ($N_B$).
+- Real-time computation of:
+  - Total Frontage: $L_A = \sum F_{A,i}$, $L_B = \sum F_{B,i}$.
+  - Total Area: $A_{block} = A_A + A_B$.
+  - Block Dimensions: Length = $\max(L_A, L_B)$, Depth = $D_A + D_B$ (Back-to-Back) or $D_A$ (Single-Sided).
+
+### Step 5: Dimension Similarity (تماثل الأبعاد)
+- Options:
+  - `All Parcels Identical`: All parcels inherit base frontage and depth.
+  - `Some Parcels Different`: Allows setting individual overrides and exceptions.
+
+### Step 6: Exceptions & Overrides (الاستثناءات والتعديلات الفردية)
+- Interactive grid/table allowing individual adjustments per parcel:
+  - Custom Frontage, Custom Depth, Custom Parcel Type (Commercial, Corner, Standard, Service).
+- Bidirectional synchronization: Changes immediately update parcel coordinates, recalculate block boundaries, and re-render the schematic preview.
+
+### Step 7: Corner & Chamfer (شطفات الأركان)
+- Toggle: Enable/Disable corner chamfers.
+- Chamfer Calculation Methods:
+  - `By Chamfer Length`: Direct diagonal cut length.
+  - `By Street Frontages`: Distance deducted from each intersecting street frontage.
+- Selective application to: Outer corners (Start of Side A, End of Side A, Start of Side B, End of Side B).
+- Real-time corner vertex clipping without producing invalid self-intersections or disjoint polygons.
+
+### Step 8: Electric Room / Substation (غرفة الكهرباء والمحول)
+- Comprehensive utility room allocation workflow:
+  - Street side selection: `Side A` or `Side B`.
+  - Dimensions: Width ($W_{ER}$), Depth ($D_{ER}$), Auto Area ($A_{ER} = W_{ER} \times D_{ER}$).
+  - Offset distance along the street frontage (default: `0.0m`).
+  - **Interactive Red Canvas Anchors**: Refined circular handles on street edges allowing 1-click snap placement.
+  - **Five Anchor Point Modes**:
+    - `Top-Left`: Room starts at anchor point and extends to the right.
+    - `Top-Right`: Room ends at anchor point and extends to the left.
+    - `Center`: Room centers symmetrically on the anchor point.
+    - `Bottom-Left`: Bottom corner alignment.
+    - `Bottom-Right`: Bottom corner alignment.
+  - **Architectural Footprint Overlay**:
+    - Vivid amber/gold highlight (`#FFA000`), technical dashed outline, and clear `⚡ ER` label.
+    - Minimum screen rendering threshold (18×18 px) to ensure legibility across long blocks.
+  - Subtractive geometry clipping from host parcel: `ER-01` parcel is created, host parcel frontage/depth/polygon are updated, and total area remains 100% conserved.
+
+### Step 9: Parcel Split & Merge (فرز ودمج القطع)
+- **Split Mode (فرز)**:
+  - Select target parcel from interactive canvas or dropdown.
+  - Split directions: `Along Frontage` (vertical split) or `Along Depth` (horizontal split).
+  - Split methods: `Equal Split (50/50)`, `By Percentage`, `By Frontage Dimension`, `By Area`.
+  - Outer corner preservation: If the target parcel has a corner chamfer, the chamfer is preserved exclusively on the outer corner child, while the inner child is cleanly squared off.
+- **Merge Mode (دمج)**:
+  - Select two parcels (Parcel 1 and Parcel 2) via canvas clicks or ID input.
+  - **Same-Side Merge**: Merges adjacent parcels sharing a depth boundary into a wider unified parcel.
+  - **Cross-Side / Spine Merge (الدمج بين الواجهتين / عبر الفاصل الخلفي)**:
+    - User-controlled checkbox: `Allow Cross-Side / Spine Merge (السماح بالدمج بين الواجهتين / عبر الفاصل الخلفي)` (Default: `true`).
+    - Validates shared boundary along the central spine ($Y = 0$) and matching frontage dimension.
+    - Produces a unified **"Through Parcel"** spanning from Street A to Street B.
+    - Automatically manages side list transfer (removes from Side B, replaces in Side A) and preserves row renumbering.
+  - Exact area conservation ($Area_{merged} = Area_1 + Area_2$).
+
+### Step 10: Spatial Alignment (المحاذاة المكانية)
+- Georeferencing methods:
+  - `Align by Existing Line`: Snap block frontage to an existing polyline/boundary in the active GIS map.
+  - `Align by Two Points`: Define origin and orientation vector from map points.
+  - `Manual Transformation`: Custom insertion point $(X, Y)$ and rotation angle ($\theta$).
+
+### Step 11: Dynamic Preview (المعاينة المكانية والمخطط)
+- Dual-layer visualization:
+  - **Schematic WPF Canvas**: Fast, anti-aliased vector rendering with true aspect ratio, zoom/pan, hover tooltips, and interactive selection.
+  - **ArcGIS Pro Map Overlay**: Live ephemeral graphics drawn via `MapView.Active.AddOverlay` with disposable CIM symbols. Zero Map Table of Contents (TOC) pollution.
+
+### Step 12: Validation Rules (قواعد التحقق الهندسية والتنظيمية)
+- Multi-tier validation engine:
+  - Dimension compliance: Minimum frontage, depth, and area per planning regulations.
+  - Geometric topology: Clean polygon closure, no self-intersections, no unintended gaps, no internal overlaps.
+  - Boundary continuity: Complete shared edge alignment along adjacent parcel boundaries.
+  - Status badges: Visual indicators (`Valid`, `Warning`, `Error`) with clear corrective instructions.
+
+### Step 13: Final Review & Output (المراجعة النهائية والتوليد)
+- Comprehensive block configuration audit and statistical summary.
+- Geodatabase Workspace selector and Feature Class naming.
+- Transactional GIS Feature Class generation using `EditOperation`:
+  - Polyline/Polygon conversion with precise spatial reference (WGS84, UTM, or local projected CRS).
+  - Rich cadastral attribute schema: `Parcel_ID`, `Side`, `Sequence`, `Frontage`, `Depth`, `Area`, `Type`, `HasChamfer`, `ChamferLength`, `IsModified`, `Notes`.
+  - Automatic addition of the resulting layer to the active map with native Pro Undo/Redo integration.
+
+---
+
+# 57. INTERACTIVE ELECTRIC ROOM ARCHITECTURE & ANCHOR MODES
+
+The Electric Room allocation engine in `ParcelGeometryEngine.cs` and `SchematicCanvasControl.cs` adheres to the following mathematical specifications:
+
+1. **Precision Red Street Handles**:
+   - Drawn on street boundary vertices and parcel junctions.
+   - Geometry: Radius = $3.0\text{px}$, Hover radius = $4.5\text{px}$, Halo = $1.0\text{px}$.
+   - Cursor changes to `Cursors.Hand` on hover.
+   - Left-click dispatches `SelectElectricRoomLocationCommand(side, offset)` immediately.
+
+2. **Anchor Translation Equations**:
+   Given anchor coordinate $(X_a, Y_a)$ on the street frontage and room dimensions $(W, D)$:
+   - **Top-Left (Default)**:
+     $$X_{min} = X_a, \quad X_{max} = X_a + W$$
+     $$Y_{min} = Y_a - D \text{ (Side A)}, \quad Y_{max} = Y_a + D \text{ (Side B)}$$
+   - **Center**:
+     $$X_{min} = X_a - \frac{W}{2}, \quad X_{max} = X_a + \frac{W}{2}$$
+   - **Top-Right**:
+     $$X_{min} = X_a - W, \quad X_{max} = X_a$$
+   - **Bottom-Left / Bottom-Right**: Adjusted relative to back spine depth.
+
+3. **Chamfer Offset Compensation**:
+   When offset distance is $0.0\text{m}$, the room automatically snaps to the start of the valid rectangular frontage immediately following the corner chamfer cut, avoiding self-intersecting or clipped room boxes.
+
+4. **Dedicated Schematic Footprint Overlay**:
+   - Fill: `#FFA000` with 80% opacity.
+   - Stroke: `#FFFFFF` (1.5px solid) + `#FFA000` (1.5px dashed).
+   - Label: Centered bold text `⚡ ER`.
+   - Cyan Anchor Marker: Glowing dot (`#00E5FF`) rendered at the active anchor location on the room footprint.
+
+---
+
+# 58. PARCEL SPLIT & MERGE SERVICE & CROSS-SIDE SPINE MERGING
+
+The `ParcelMergeService` and `ParcelSplitService` provide mathematically rigorous parcel union and division:
+
+1. **Winding Order Normalization (Counter-Clockwise CCW)**:
+   - For any polygon ring, signed area is computed:
+     $$A_{signed} = \frac{1}{2} \sum_{i=0}^{n-1} (x_i y_{i+1} - x_{i+1} y_i)$$
+   - If $A_{signed} < 0$ (Clockwise), vertices are reversed to CCW.
+   - **Why this is critical**: In Back-to-Back blocks, Side A parcels have depth in $+Y$ while Side B parcels have depth in $-Y$. Without CCW normalization, their shared boundary along the spine ($Y=0$) traverses in the *same* direction, breaking edge cancellation. Under CCW normalization, the seam edge runs in opposite directions ($(x_1, 0) \to (x_2, 0)$ vs $(x_2, 0) \to (x_1, 0)$), dissolving cleanly in `SubtractOverlappingEdge`.
+
+2. **Bidirectional Edge Chaining (`ChainEdgesToPolygon`)**:
+   - Chaining traverses remaining outer boundary edges.
+   - If `e.From` does not match the active `current.To`, it searches for `e.To` and flips the edge dynamically.
+   - Prevents jump-across artifacts, degenerate loops, and zero-area self-intersecting polygons.
+
+3. **Cross-Side Through-Parcel Creation**:
+   - When merging across sides:
+     - Frontages must match along the spine: $|F_1 - F_2| \le 0.05\text{m}$.
+     - Total Depth = $D_1 + D_2$.
+     - Total Area = $Area_1 + Area_2$.
+     - Resulting parcel type is set to `"Through Parcel"`.
+     - Side list transfer: Removed from Side B, updated in Side A.
+     - Row renumbering preserves `"Through Parcel"` without overwriting its classification to `"Standard"` or `"Corner"`.
+
+---
+
+# 59. STATE PERSISTENCE, BACKTRACKING & UNDO/REDO ENGINE
+
+To prevent user frustration during multi-step configuration:
+
+1. **State Retention on Backward Navigation**:
+   - Moving backwards in the stepper (`← Back` or clicking previous step numbers) **MUST NOT** reset the model or wipe edits.
+   - Previous steps reflect the current working state:
+     - Parcel counts reflect actual generated count including splits and merges.
+     - Exceptions table retains all custom dimensions.
+     - Electric room parameters and split/merge histories remain intact.
+2. **Deep-Clone Undo/Redo Stack (`PushState` / `UndoCommand`)**:
+   - Destructive operations (`Split`, `Merge`, `ApplyElectricRoom`, `ResetExceptions`) invoke `PushState()` prior to mutation.
+   - The user can click `Undo` or `Redo` at any point in the workflow to revert or re-apply mutations.
+3. **Internal Sync Guard (`_isSyncingState`)**:
+   - `SyncStateFromGeneratedParcels()` synchronizes counts, areas, and exception records from `GeneratedParcels` without triggering recursive geometric regeneration loops.
+
+---
+
+# 60. ARCGIS PRO RIBBON INTEGRATION & PACKAGING RULES
+
+1. **Single Tab Ribbon Sanitation**:
+   - The Add-In DAML (`Config.daml`) must define a single, clean ribbon tab:
+     `<tab id="ParcelBuilder_Tab" caption="Parcel Builder">`
+   - **Forbidden**: Do not declare or duplicate tools inside the default generic `<tab id="esri_core_addonTab">` or any other tab. The tool must appear exclusively in its dedicated `Parcel Builder` ribbon tab.
+2. **Strict Manual Deployment Rule**:
+   - Build scripts and output packaging must output exclusively to:
+     `d:\Learning\PARCEL BUILDER\AddInPackage\ParcelBuilder.esriAddinX`
+   - **Do NOT automatically copy or publish** the AddIn to the user's ArcGIS Pro system directory (`C:\Users\<user>\Documents\ArcGIS\AddIns\ArcGISPro\...`).
+   - The user will perform the installation manually.
+
+---
+
+# 61. VERIFICATION & UNIT TESTING STANDARDS
+
+1. All geometry algorithms, polygon clipping, chamfers, splits, merges, CCW winding normalization, and area calculations must have automated unit tests in `tests/ParcelBuilder.Tests`.
+2. Regression prevention: Before concluding any task, execute:
+   ```powershell
+   dotnet test "tests/ParcelBuilder.Tests/ParcelBuilder.Tests.csproj"
+   ```
+   All tests (51/51 or more) must pass with zero failures.
+3. Build verification: Execute:
+   ```powershell
+   dotnet build "ParcelBuilder.slnx"
+   ```
+   Must complete with 0 Warning(s) and 0 Error(s).

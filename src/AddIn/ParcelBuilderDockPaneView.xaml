@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:ParcelBuilder.AddIn"
              xmlns:controls="clr-namespace:ParcelBuilder.AddIn.Controls"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
              d:DesignHeight="1000" d:DesignWidth="1100"
              FlowDirection="{Binding FlowDirection}"
@@ -233,6 +233,25 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Undo / Redo Buttons -->
+                    <Border Background="#131F3F" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="4,2" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Command="{Binding UndoCommand}" ToolTip="Undo last action (↶)" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="6,3">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="↶" FontSize="13" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,3,0"/>
+                                    <TextBlock Text="Undo" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text="|" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" Margin="2,0"/>
+                            <Button Command="{Binding RedoCommand}" ToolTip="Redo action (↷)" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="6,3">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="↷" FontSize="13" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,3,0"/>
+                                    <TextBlock Text="Redo" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
                     <Border Background="#131F3F" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <CheckBox IsChecked="{Binding IsLivePreviewEnabled}" VerticalAlignment="Center" Margin="0,0,6,0" Cursor="Hand"/>
@@ -306,11 +325,11 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT STEPPER SIDEBAR (12 STEPS) -->
+            <!-- LEFT STEPPER SIDEBAR (13 STEPS) -->
             <Border Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}" Padding="10,12">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="STEPPER WORKFLOW" FontWeight="Bold" FontSize="10" Foreground="{StaticResource MutedTextBrush}" Margin="6,0,0,10"/>
+                        <TextBlock Text="{Binding StepperHeaderTitle}" FontWeight="Bold" FontSize="10" Foreground="{StaticResource MutedTextBrush}" Margin="6,0,0,10"/>
 
                         <!-- Step 1 -->
                         <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
@@ -340,7 +359,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="1. Base Dimensions" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle1}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -384,7 +403,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="2. Relationship" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle2}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -428,7 +447,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="3. Arrangement" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle3}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -472,7 +491,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="4. Parcel Count" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle4}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -516,7 +535,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="5. Similarity" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle5}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -560,7 +579,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="6. Exceptions" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle6}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -604,7 +623,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="7. Corner &amp; Chamfer" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle7}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -648,7 +667,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="8. Electric Room" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle8}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -664,7 +683,7 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Step 9 -->
+                        <!-- Step 9: Split & Merge -->
                         <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
                             <Button.CommandParameter><sys:Int32>9</sys:Int32></Button.CommandParameter>
                             <StackPanel Orientation="Horizontal">
@@ -692,7 +711,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="9. Alignment" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle9}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -708,7 +727,7 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Step 10 -->
+                        <!-- Step 10: Alignment -->
                         <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
                             <Button.CommandParameter><sys:Int32>10</sys:Int32></Button.CommandParameter>
                             <StackPanel Orientation="Horizontal">
@@ -736,7 +755,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="10. Dynamic Preview" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle10}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -752,7 +771,7 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Step 11 -->
+                        <!-- Step 11: Dynamic Preview -->
                         <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
                             <Button.CommandParameter><sys:Int32>11</sys:Int32></Button.CommandParameter>
                             <StackPanel Orientation="Horizontal">
@@ -780,7 +799,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="11. Validation Rules" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle11}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -796,7 +815,7 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Step 12 -->
+                        <!-- Step 12: Validation Rules -->
                         <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
                             <Button.CommandParameter><sys:Int32>12</sys:Int32></Button.CommandParameter>
                             <StackPanel Orientation="Horizontal">
@@ -824,12 +843,56 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Border>
-                                <TextBlock Text="12. Final Review &amp; Output" VerticalAlignment="Center" FontSize="11">
+                                <TextBlock Text="{Binding StepNavTitle12}" VerticalAlignment="Center" FontSize="11">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsStep12}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Step 13: Final Review & Output -->
+                        <Button Style="{StaticResource StepNavButton}" Command="{Binding GoToStepCommand}">
+                            <Button.CommandParameter><sys:Int32>13</sys:Int32></Button.CommandParameter>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="20" Height="20" CornerRadius="10" Margin="0,0,10,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#162347"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep13}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource AccentCyanBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="13" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStep13}" Value="True">
+                                                        <Setter Property="Foreground" Value="#0B132B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="{Binding StepNavTitle13}" VerticalAlignment="Center" FontSize="11">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStep13}" Value="True">
                                                     <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
                                                     <Setter Property="FontWeight" Value="Bold"/>
                                                 </DataTrigger>
@@ -1170,7 +1233,7 @@
                                     <TextBlock Text="{Binding AllGeneratedParcels.Count, StringFormat='Total: {0} Lots'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentMintBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
 
-                                <!-- Items List of All Parcels with Dimensions -->
+                                <!-- Items List of All Parcels with Dimensions & Context Actions -->
                                 <ItemsControl ItemsSource="{Binding AllGeneratedParcels}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -1189,16 +1252,25 @@
 
                                                     <!-- Dimension Metrics Summary -->
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Frontage, StringFormat='Frontage: {0:F1} m'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,14,0"/>
-                                                        <TextBlock Text="{Binding Depth, StringFormat='Depth: {0:F1} m'}" FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,14,0"/>
-                                                        <TextBlock Text="{Binding Area, StringFormat='Area: {0:N0} m²'}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentMintBrush}" Margin="0,0,14,0"/>
-                                                        <Border Background="#162347" CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Frontage, StringFormat='Frontage: {0:F1} m'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,12,0"/>
+                                                        <TextBlock Text="{Binding Depth, StringFormat='Depth: {0:F1} m'}" FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,12,0"/>
+                                                        <TextBlock Text="{Binding Area, StringFormat='Area: {0:N0} m²'}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentMintBrush}" Margin="0,0,12,0"/>
+                                                        <Border Background="#162347" CornerRadius="3" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Type}" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource AccentAmberBrush}"/>
                                                         </Border>
                                                     </StackPanel>
 
-                                                    <!-- Action Select / Edit Button -->
-                                                    <Button Grid.Column="2" Content="✏ Edit / Select" Command="{Binding DataContext.SelectParcelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}" Style="{StaticResource OutlineActionButton}" Padding="10,4" FontSize="10" VerticalAlignment="Center"/>
+                                                    <!-- Action Buttons: Split, Merge With Next, Edit / Select -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <!-- Split Action -->
+                                                        <Button Content="✂ Split" Command="{Binding DataContext.RowSplitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}" Style="{StaticResource OutlineActionButton}" Padding="8,4" FontSize="10" Margin="0,0,6,0" ToolTip="Split this parcel into two sub-parcels"/>
+                                                        
+                                                        <!-- Merge With Next Action -->
+                                                        <Button Content="🔗 Merge Next" Command="{Binding DataContext.RowMergeWithNextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}" IsEnabled="{Binding CanMergeWithNext}" ToolTip="{Binding MergeNextValidationMessage}" Background="#112244" Foreground="{StaticResource AccentTealBrush}" BorderBrush="{StaticResource AccentTealBrush}" BorderThickness="1" Padding="8,4" FontSize="10" Margin="0,0,6,0" Cursor="Hand"/>
+                                                        
+                                                        <!-- Edit / Select Action -->
+                                                        <Button Content="✏ Edit" Command="{Binding DataContext.SelectParcelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}" Style="{StaticResource OutlineActionButton}" Padding="8,4" FontSize="10"/>
+                                                    </StackPanel>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -1576,6 +1648,31 @@
                                         </StackPanel>
                                     </Grid>
 
+                                    <!-- Room Anchor / Reference Point Section (نقطة ارتكاز الغرفة للتموضع) -->
+                                    <TextBlock Text="ROOM ANCHOR / REFERENCE POINT (نقطة ارتكاز الغرفة للتموضع)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,8"/>
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Row 1: Street-front corners and center -->
+                                        <RadioButton Grid.Row="0" Grid.Column="0" Content="Front-Left (أعلى يسار)" IsChecked="{Binding IsElectricRoomAnchorTopLeft}" Style="{StaticResource OptionCard}" FontSize="11" Padding="8,8" Margin="0,0,0,8" ToolTip="Align room from its front-left corner along street"/>
+                                        <RadioButton Grid.Row="0" Grid.Column="2" Content="Room Center (المنتصف)" IsChecked="{Binding IsElectricRoomAnchorCenter}" Style="{StaticResource OptionCard}" FontSize="11" Padding="8,8" Margin="0,0,0,8" ToolTip="Align room from its center point"/>
+                                        <RadioButton Grid.Row="0" Grid.Column="4" Content="Front-Right (أعلى يمين)" IsChecked="{Binding IsElectricRoomAnchorTopRight}" Style="{StaticResource OptionCard}" FontSize="11" Padding="8,8" Margin="0,0,0,8" ToolTip="Align room from its front-right corner along street"/>
+
+                                        <!-- Row 2: Inward corners -->
+                                        <RadioButton Grid.Row="1" Grid.Column="0" Content="Back-Left (أسفل يسار)" IsChecked="{Binding IsElectricRoomAnchorBottomLeft}" Style="{StaticResource OptionCard}" FontSize="11" Padding="8,8" ToolTip="Align room from its rear-left corner"/>
+                                        <RadioButton Grid.Row="1" Grid.Column="2" Content="Back-Right (أسفل يمين)" IsChecked="{Binding IsElectricRoomAnchorBottomRight}" Style="{StaticResource OptionCard}" FontSize="11" Padding="8,8" ToolTip="Align room from its rear-right corner"/>
+                                    </Grid>
+
                                     <!-- Status & Relationship Container -->
                                     <TextBlock Text="STATUS &amp; HOST PARCEL RELATIONSHIP" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,8"/>
                                     <Border Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14,12" Margin="0,0,0,14">
@@ -1620,9 +1717,16 @@
                                     </Border>
 
                                     <!-- Live Schematic Canvas Preview -->
-                                    <TextBlock Text="SCHEMATIC PREVIEW (معاينة غرفة المحول)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,8"/>
-                                    <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="{StaticResource AccentAmberDarkBrush}" BorderThickness="1" Height="200">
-                                        <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}" ShowAnchorHandles="False"/>
+                                    <Grid Margin="0,4,0,8">
+                                        <TextBlock Text="SCHEMATIC PREVIEW &amp; INTERACTIVE PLACEMENT (معاينة ونقاط التموضع التفاعلية)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="🔴 انقر على أي نقطة حمراء على الواجهة لتحديد موقع غرفة الكهرباء مباشرة" FontSize="11" Foreground="{StaticResource AccentAmberBrush}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="{StaticResource AccentAmberDarkBrush}" BorderThickness="1" Height="220">
+                                        <controls:SchematicCanvasControl Configuration="{Binding Config}" 
+                                                                         SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}" 
+                                                                         ShowAnchorHandles="False"
+                                                                         ShowElectricRoomHandles="True"
+                                                                         SelectElectricRoomLocationCommand="{Binding SelectElectricRoomLocationCommand}"/>
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
@@ -1630,11 +1734,288 @@
                     </StackPanel>
 
                     <!-- ============================================================ -->
-                    <!-- STEP 9: SPATIAL ALIGNMENT & ORIENTATION                     -->
+                    <!-- STEP 9: PARCEL SPLIT & MERGE (فرز ودمج القطع)                 -->
                     <!-- ============================================================ -->
                     <StackPanel Visibility="{Binding IsStep9, Converter={StaticResource BoolToVis}}">
                         <!-- Step Title & Subtitle -->
-                        <TextBlock Text="9. Spatial Alignment &amp; Orientation" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="9. Parcel Split &amp; Merge (فرز ودمج القطع)" FontWeight="Bold" FontSize="16" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Split a selected parcel into two lots or merge two adjacent parcels sharing a common boundary." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
+
+                        <!-- Mode Selector Card (Split Parcel vs Merge Parcels) -->
+                        <Border Style="{StaticResource CardPanel}">
+                            <StackPanel>
+                                <TextBlock Text="SELECT OPERATION MODE (نوع العملية)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <RadioButton Grid.Column="0" Content="✂ Split Parcel (فرز / تقسيم قطعة)" IsChecked="{Binding IsSplitMode, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="12,10" FontSize="11" FontWeight="Bold"/>
+                                    <RadioButton Grid.Column="2" Content="🔗 Merge Parcels (دمج قطعتين)" IsChecked="{Binding IsMergeMode, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="12,10" FontSize="11" FontWeight="Bold"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ==================== SPLIT PARCEL PANEL ==================== -->
+                        <StackPanel Visibility="{Binding IsSplitMode, Converter={StaticResource BoolToVis}}">
+                            <!-- 1. Selected Parcel Card -->
+                            <Border Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="SELECTED PARCEL FOR SPLIT (القطعة المختارة)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}"/>
+                                        <TextBlock Text="Click a parcel in the schematic preview below or on map" FontSize="10" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Right"/>
+                                    </Grid>
+
+                                    <Border Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Parcel ID" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding SelectedParcelId, FallbackValue='None'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="Frontage" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding SelectedParcelFrontage, StringFormat='{}{0:F1} m', FallbackValue='- m'}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Depth" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding SelectedParcelDepth, StringFormat='{}{0:F1} m', FallbackValue='- m'}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="3">
+                                                <TextBlock Text="Area" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding SelectedParcelArea, StringFormat='{}{0:N0} m²', FallbackValue='- m²'}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AccentMintBrush}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- 2. Split Direction (Along Frontage vs Along Depth) -->
+                                    <TextBlock Text="SPLIT DIRECTION (اتجاه الفرز)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,6"/>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <RadioButton Grid.Column="0" Content="Along Frontage (وفق الواجهة)" IsChecked="{Binding IsSplitAlongFrontage, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="10,8" FontSize="11"/>
+                                        <RadioButton Grid.Column="2" Content="Along Depth (وفق العمق)" IsChecked="{Binding IsSplitAlongDepth, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="10,8" FontSize="11"/>
+                                    </Grid>
+
+                                    <!-- 3. Split Method (Equal vs Custom) & Position Dual Sliders -->
+                                    <TextBlock Text="SPLIT METHOD &amp; DUAL POSITION (طريقة ونسبة وموضع القص)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,6"/>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <RadioButton Grid.Column="0" Content="Equal Split (50/50 مناصفة)" IsChecked="{Binding IsSplitEqual, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="10,8" FontSize="11"/>
+                                        <RadioButton Grid.Column="2" Content="Custom Split (مخصص)" IsChecked="{Binding IsSplitCustom, Mode=TwoWay}" Style="{StaticResource OptionCard}" Padding="10,8" FontSize="11"/>
+                                    </Grid>
+
+                                    <!-- Dual Percentage / Distance live controls -->
+                                    <Border Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Percentage Control -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                                <TextBlock Text="Split Ratio (%)" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SplitPercentage, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+
+                                            <!-- Distance Control -->
+                                            <StackPanel Grid.Row="0" Grid.Column="2">
+                                                <TextBlock Text="Cut Distance (m)" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SplitPosition, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+
+                                            <!-- Min Dimension Threshold -->
+                                            <StackPanel Grid.Row="0" Grid.Column="4">
+                                                <TextBlock Text="Min Dimension (m)" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding MinDimensionThreshold, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+
+                                            <!-- Percentage Slider -->
+                                            <Slider Grid.Row="2" Grid.ColumnSpan="5" Minimum="1" Maximum="99" Value="{Binding SplitPercentage, Mode=TwoWay}" TickFrequency="5" IsSnapToTickEnabled="False" Foreground="{StaticResource AccentCyanBrush}"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Non-blocking Warnings (Frontage & Chamfer) -->
+                                    <Border Background="#261E0A" BorderBrush="{StaticResource AccentAmberDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10" Visibility="{Binding HasStreetFrontageWarning, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⚠️ " FontSize="12"/>
+                                            <TextBlock Text="{Binding StreetFrontageWarningText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentAmberBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Background="#0E233D" BorderBrush="{StaticResource AccentCyanBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10" Visibility="{Binding HasChamferWarning, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📐 " FontSize="12"/>
+                                            <TextBlock Text="{Binding ChamferWarningText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- 4. Resulting Parcels Preview Summary -->
+                                    <TextBlock Text="CALCULATED SUB-PARCELS PREVIEW (معاينة القطع الناتجة)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentMintBrush}" Margin="0,4,0,6"/>
+                                    <Border Background="#091024" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding SplitPreviewParcel1Text, StringFormat='Parcel 1: {0}'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,3"/>
+                                            <TextBlock Text="{Binding SplitPreviewParcel2Text, StringFormat='Parcel 2: {0}'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Interactive Schematic Canvas Preview -->
+                            <Border Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="LIVE SCHEMATIC SPLIT PREVIEW (المعاينة التخطيطية الفورية)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,8"/>
+                                    <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" Height="220" Margin="0,0,0,12">
+                                        <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding SelectedParcelId, Mode=TwoWay}" ShowAnchorHandles="False"/>
+                                    </Border>
+
+                                    <!-- Status Message & Action Buttons -->
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Status: " FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}"/>
+                                            <TextBlock Text="{Binding SplitMergeStatusText}" FontSize="11" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource AccentMintBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSplitMergeValid}" Value="False">
+                                                                <Setter Property="Foreground" Value="{StaticResource AccentRedBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Cancel (إلغاء)" Command="{Binding CancelSplitMergeCommand}" Style="{StaticResource OutlineActionButton}" Padding="16,8" Margin="0,0,10,0"/>
+                                            <Button Content="✂ Apply Split (تطبيق الفرز)" Command="{Binding ApplySplitCommand}" Style="{StaticResource SolidTealButton}" Padding="18,8"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ==================== MERGE PARCELS PANEL ==================== -->
+                        <StackPanel Visibility="{Binding IsMergeMode, Converter={StaticResource BoolToVis}}">
+                            <!-- 1. Selected Parcels Card -->
+                            <Border Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="SELECTED PARCELS FOR MERGE (القطع المستهدفة للدمج)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}"/>
+                                        <TextBlock Text="Click two adjacent parcels on canvas or enter IDs" FontSize="10" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Right"/>
+                                    </Grid>
+
+                                    <!-- Option to allow cross-side merge -->
+                                    <CheckBox IsChecked="{Binding AllowDifferentSideMerge}" 
+                                              Content="Allow Cross-Side / Spine Merge (السماح بالدمج بين الواجهتين / عبر الفاصل الخلفي)" 
+                                              Foreground="{StaticResource AccentAmberBrush}" 
+                                              FontWeight="Bold" FontSize="11" 
+                                              Cursor="Hand" Margin="0,0,0,10"/>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10">
+                                            <StackPanel>
+                                                <TextBlock Text="Parcel 1 (First)" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding MergeParcel1Id, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding MergeParcel1Summary}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentCyanBrush}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="2" Background="#0C152E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10">
+                                            <StackPanel>
+                                                <TextBlock Text="Parcel 2 (Second)" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding MergeParcel2Id, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding MergeParcel2Summary}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentCyanBrush}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- 2. Resulting Merged Parcel Preview Summary -->
+                                    <TextBlock Text="UNIFIED RESULTING PARCEL PREVIEW (معاينة القطعة المدمجة)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentMintBrush}" Margin="0,4,0,6"/>
+                                    <Border Background="#091024" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                                        <TextBlock Text="{Binding MergePreviewParcelText, StringFormat='Merged: {0}'}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Interactive Schematic Canvas Preview -->
+                            <Border Style="{StaticResource CardPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="LIVE SCHEMATIC MERGE PREVIEW (المعاينة التخطيطية الفورية)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,8"/>
+                                    <Border Background="#091024" CornerRadius="6" Padding="6" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" Height="220" Margin="0,0,0,12">
+                                        <controls:SchematicCanvasControl Configuration="{Binding Config}" SelectedParcelId="{Binding MergeParcel1Id, Mode=TwoWay}" SelectedParcelId2="{Binding MergeParcel2Id, Mode=TwoWay}" ShowAnchorHandles="False"/>
+                                    </Border>
+
+                                    <!-- Status Message & Action Buttons -->
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Status: " FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}"/>
+                                            <TextBlock Text="{Binding SplitMergeStatusText}" FontSize="11" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource AccentMintBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSplitMergeValid}" Value="False">
+                                                                <Setter Property="Foreground" Value="{StaticResource AccentRedBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Cancel (إلغاء)" Command="{Binding CancelSplitMergeCommand}" Style="{StaticResource OutlineActionButton}" Padding="16,8" Margin="0,0,10,0"/>
+                                            <Button Content="🔗 Merge Selected Parcels (تطبيق الدمج)" Command="{Binding ApplyMergeCommand}" Style="{StaticResource SolidTealButton}" Padding="18,8"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============================================================ -->
+                    <!-- STEP 10: SPATIAL ALIGNMENT & ORIENTATION                     -->
+                    <!-- ============================================================ -->
+                    <StackPanel Visibility="{Binding IsStep10, Converter={StaticResource BoolToVis}}">
+                        <!-- Step Title & Subtitle -->
+                        <TextBlock Text="10. Spatial Alignment &amp; Orientation" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Define orientation baseline via 2 map points or reference parcel alignment." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <!-- Main Spatial Baseline Card -->
@@ -1758,10 +2139,10 @@
                     </StackPanel>
 
                     <!-- ============================================================ -->
-                    <!-- STEP 10: DYNAMIC PREVIEW & INSPECTION (MATCHING 09-DYNAMIC)  -->
+                    <!-- STEP 11: DYNAMIC PREVIEW & INSPECTION (MATCHING 09-DYNAMIC)  -->
                     <!-- ============================================================ -->
-                    <StackPanel Visibility="{Binding IsStep10, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="10. Dynamic Preview &amp; Inspection" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                    <StackPanel Visibility="{Binding IsStep11, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="11. Dynamic Preview &amp; Inspection" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Inspect individual parcel dimensions, areas, and interactive vector layout schematic." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <!-- Top Toolbar Banner -->
@@ -1856,10 +2237,10 @@
                     </StackPanel>
 
                     <!-- ============================================================ -->
-                    <!-- STEP 11: VALIDATION & GEOMETRY RULES (MATCHING 10-VALIDATION)-->
+                    <!-- STEP 12: VALIDATION & GEOMETRY RULES (MATCHING 10-VALIDATION)-->
                     <!-- ============================================================ -->
-                    <StackPanel Visibility="{Binding IsStep11, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="11. Validation &amp; Geometry Rules" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+                    <StackPanel Visibility="{Binding IsStep12, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="12. Validation &amp; Geometry Rules" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Review geometric integrity, topological checks, and validation error warnings." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 
                         <Border Style="{StaticResource CardPanel}">
@@ -1933,9 +2314,9 @@
                     </StackPanel>
 
                     <!-- ============================================================ -->
-                    <!-- STEP 12: FINAL REVIEW & OUTPUT (MATCHING 11-FINAL)           -->
+                    <!-- STEP 13: FINAL REVIEW & OUTPUT (MATCHING 11-FINAL)           -->
                     <!-- ============================================================ -->
-                    <StackPanel Visibility="{Binding IsStep12, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Visibility="{Binding IsStep13, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="12. Final Review &amp; Feature Class Output" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBlock Text="Review the final configuration summary blueprint and export to Geodatabase Feature Class." FontSize="11" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 

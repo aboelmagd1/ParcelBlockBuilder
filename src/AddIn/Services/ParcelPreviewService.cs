@@ -71,30 +71,36 @@ namespace ParcelBuilder.AddIn.Services
                     }
                     _activeOverlays.Clear();
 
-                    var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).ToList();
+                    var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).Distinct().ToList();
                     if (allParcels.Count == 0) return;
 
-                    // 1. Symbols definition
+                    // 1. Symbols definition (Note: CIMColor alpha is in 0..100 percentage range)
                     var sideASymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
-                        CIMColor.CreateRGBColor(41, 182, 246, 80), // #29B6F6 with 30% alpha
+                        CIMColor.CreateRGBColor(41, 182, 246, 30.0), // #29B6F6 with 30% alpha
                         SimpleFillStyle.Solid,
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(2, 136, 209), 1.5, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
 
                     var sideBSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
-                        CIMColor.CreateRGBColor(171, 71, 188, 80), // #AB47BC with 30% alpha
+                        CIMColor.CreateRGBColor(171, 71, 188, 30.0), // #AB47BC with 30% alpha
                         SimpleFillStyle.Solid,
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(123, 31, 162), 1.5, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
 
+                    var throughParcelSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
+                        CIMColor.CreateRGBColor(0, 191, 165, 35.0), // #00BFA5 with 35% alpha
+                        SimpleFillStyle.Solid,
+                        SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(0, 229, 255), 2.0, SimpleLineStyle.Solid)
+                    ).MakeSymbolReference();
+
                     var electricRoomSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
-                        CIMColor.CreateRGBColor(255, 145, 0, 140), // Glowing Amber with 55% alpha
+                        CIMColor.CreateRGBColor(255, 145, 0, 55.0), // Glowing Amber with 55% alpha
                         SimpleFillStyle.Solid,
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(255, 215, 64), 2.0, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
 
                     var highlightSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(
-                        CIMColor.CreateRGBColor(0, 229, 255, 140), // Glowing Cyan with 55% alpha
+                        CIMColor.CreateRGBColor(0, 229, 255, 55.0), // Glowing Cyan with 55% alpha
                         SimpleFillStyle.Solid,
                         SymbolFactory.Instance.ConstructStroke(CIMColor.CreateRGBColor(255, 255, 255), 2.5, SimpleLineStyle.Solid)
                     ).MakeSymbolReference();
@@ -111,9 +117,13 @@ namespace ParcelBuilder.AddIn.Services
                         }).ToList();
                         var polygon = PolygonBuilderEx.CreatePolygon(points, spatialReference);
 
-                        bool isSelected = !string.IsNullOrEmpty(selectedParcelId) && parcel.Id == selectedParcelId;
+                        bool isSelected = (!string.IsNullOrEmpty(selectedParcelId) && parcel.Id == selectedParcelId)
+                            || (config.SplitMerge != null && config.SplitMerge.Mode == SplitMergeMode.MergeParcels &&
+                                (string.Equals(parcel.Id, config.SplitMerge.MergeParcelId1, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(parcel.Id, config.SplitMerge.MergeParcelId2, StringComparison.OrdinalIgnoreCase)));
                         bool isElectricRoom = parcel.Type == "Electric Room" || parcel.Id == "ER-01";
-                        var symbolRef = isSelected ? highlightSymbol : (isElectricRoom ? electricRoomSymbol : (parcel.Side == ParcelSide.SideA ? sideASymbol : sideBSymbol));
+                        bool isThrough = parcel.Side == ParcelSide.Both || parcel.Type == "Through Parcel";
+                        var symbolRef = isSelected ? highlightSymbol : (isElectricRoom ? electricRoomSymbol : (isThrough ? throughParcelSymbol : (parcel.Side == ParcelSide.SideA ? sideASymbol : sideBSymbol)));
 
                         var polygonOverlay = mapView.AddOverlay(polygon, symbolRef);
                         if (polygonOverlay != null)
@@ -131,7 +141,7 @@ namespace ParcelBuilder.AddIn.Services
                             "Bold"
                         );
                         labelTextSymbol.HaloSize = 1.2;
-                        labelTextSymbol.HaloSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(CIMColor.CreateRGBColor(11, 19, 43, 220));
+                        labelTextSymbol.HaloSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(CIMColor.CreateRGBColor(11, 19, 43, 85.0));
 
                         var textOverlay = mapView.AddOverlay(centerPt, labelTextSymbol.MakeSymbolReference());
                         if (textOverlay != null)
@@ -167,7 +177,7 @@ namespace ParcelBuilder.AddIn.Services
                             "Bold"
                         );
                         anchorLabelSymbol.HaloSize = 1.0;
-                        anchorLabelSymbol.HaloSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(CIMColor.CreateRGBColor(11, 19, 43, 220));
+                        anchorLabelSymbol.HaloSymbol = SymbolFactory.Instance.ConstructPolygonSymbol(CIMColor.CreateRGBColor(11, 19, 43, 85.0));
                         anchorLabelSymbol.OffsetX = 12.0;
                         anchorLabelSymbol.OffsetY = 12.0;
 

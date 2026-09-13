@@ -54,6 +54,12 @@ namespace ParcelBuilder.Core.Models
             set { if (value) Side = ParcelSide.SideB; }
         }
 
+        public bool IsSideBoth
+        {
+            get => _side == ParcelSide.Both;
+            set { if (value) Side = ParcelSide.Both; }
+        }
+
         /// <summary>
         /// 1-based sequence index of the parcel along its side.
         /// </summary>
@@ -70,9 +76,11 @@ namespace ParcelBuilder.Core.Models
         }
 
         /// <summary>
-        /// Formatted parcel identifier e.g. "A-02" or "B-05".
+        /// Formatted parcel identifier e.g. "A-02", "B-05", or "AB-02".
         /// </summary>
-        public string ParcelIdentifier => $"{(Side == ParcelSide.SideA ? "A" : "B")}-{Sequence:D2}";
+        public string ParcelIdentifier => Side == ParcelSide.Both
+            ? $"AB-{Sequence:D2}"
+            : $"{(Side == ParcelSide.SideA ? "A" : "B")}-{Sequence:D2}";
 
         /// <summary>
         /// Custom frontage in meters, or null to inherit BaseParcel frontage.

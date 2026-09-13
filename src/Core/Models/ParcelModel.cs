@@ -32,6 +32,10 @@ namespace ParcelBuilder.Core.Models
         public bool IsCorner { get; set; }
         public bool HasChamfer { get; set; }
         public bool IsModified { get; set; }
+        public bool HasStreetFrontage { get; set; } = true;
+        public string ParentParcelId { get; set; } = string.Empty;
+        public bool CanMergeWithNext { get; set; }
+        public string MergeNextValidationMessage { get; set; } = string.Empty;
         public string Type { get; set; } = "Standard";
 
         /// <summary>
@@ -57,6 +61,10 @@ namespace ParcelBuilder.Core.Models
                 IsCorner = this.IsCorner,
                 HasChamfer = this.HasChamfer,
                 IsModified = this.IsModified,
+                HasStreetFrontage = this.HasStreetFrontage,
+                ParentParcelId = this.ParentParcelId,
+                CanMergeWithNext = this.CanMergeWithNext,
+                MergeNextValidationMessage = this.MergeNextValidationMessage,
                 Type = this.Type,
                 Centroid = this.Centroid,
                 PolygonRing = new List<Point2D>(this.PolygonRing)

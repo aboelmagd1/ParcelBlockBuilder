@@ -4,6 +4,15 @@ using System.Linq;
 
 namespace ParcelBuilder.Core.Models
 {
+    public enum ElectricRoomAnchorPoint
+    {
+        TopLeft,        // Front-Left / أعلى يسار (ركن الشارع الأيسر)
+        TopRight,       // Front-Right / أعلى يمين (ركن الشارع الأيمن)
+        Center,         // Center / المنتصف (مركز الغرفة)
+        BottomLeft,     // Back-Left / أسفل يسار (الركن الداخلي الأيسر)
+        BottomRight     // Back-Right / أسفل يمين (الركن الداخلي الأيمن)
+    }
+
     /// <summary>
     /// Configuration for the Electric Room / Substation (غرفة المحول / الكهرباء)
     /// placed along the street frontage and carved/clipped from the host parcel(s).
@@ -62,9 +71,15 @@ namespace ParcelBuilder.Core.Models
         public ElectricRoomPlacementType PlacementType { get; set; } = ElectricRoomPlacementType.InsideSingleParcel;
 
         /// <summary>
-        /// Offset in meters from the start of the block frontage along the street.
+        /// Anchor point on the room footprint used for positioning (the 4 corners and center).
         /// </summary>
-        public double OffsetDistance { get; set; } = 10.0;
+        public ElectricRoomAnchorPoint RoomAnchor { get; set; } = ElectricRoomAnchorPoint.TopLeft;
+
+        /// <summary>
+        /// Offset in meters from the start of the block frontage along the street.
+        /// Defaults to 0.0 meters.
+        /// </summary>
+        public double OffsetDistance { get; set; } = 0.0;
 
         /// <summary>
         /// Clicked map point X coordinate in spatial reference (if placed via map interaction).
@@ -131,6 +146,7 @@ namespace ParcelBuilder.Core.Models
                 Side = this.Side,
                 PlacementMethod = this.PlacementMethod,
                 PlacementType = this.PlacementType,
+                RoomAnchor = this.RoomAnchor,
                 OffsetDistance = this.OffsetDistance,
                 ClickedMapX = this.ClickedMapX,
                 ClickedMapY = this.ClickedMapY,

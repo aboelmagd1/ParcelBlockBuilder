@@ -35,11 +35,18 @@ namespace ParcelBuilder.AddIn
         {
             if (geometry is not MapPoint clickPoint) return false;
 
-            var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
-            if (dockPane != null)
+            try
             {
-                dockPane.Activate();
-                await dockPane.OnMapParcelSelectedAsync(clickPoint);
+                var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
+                if (dockPane != null)
+                {
+                    dockPane.Activate();
+                    await dockPane.OnMapParcelSelectedAsync(clickPoint);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SelectParcelTool notice: {ex.Message}");
             }
 
             return true;

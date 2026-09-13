@@ -37,7 +37,7 @@ namespace ParcelBuilder.AddIn.Services
                 return (false, "Configuration is null.", 0);
             }
 
-            var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).ToList();
+            var allParcels = config.SideA.GeneratedParcels.Concat(config.SideB.GeneratedParcels).Distinct().ToList();
             if (allParcels.Count == 0)
             {
                 return (false, "No generated parcels found to export.", 0);
@@ -94,9 +94,11 @@ namespace ParcelBuilder.AddIn.Services
             {
                 ("ParcelID", "TEXT", 30, "Parcel Identifier"),
                 ("FeatureType", "TEXT", 30, "Feature Classification (Parcel / ElectricRoom)"),
-                ("Side", "TEXT", 15, "Block Side"),
+                ("Side", "TEXT", 20, "Block Side"),
                 ("Sequence", "LONG", 0, "Sequence Number"),
                 ("Frontage", "DOUBLE", 0, "Frontage Width (m)"),
+                ("FrontageA", "DOUBLE", 0, "Frontage on Street A (m)"),
+                ("FrontageB", "DOUBLE", 0, "Frontage on Street B (m)"),
                 ("Depth", "DOUBLE", 0, "Parcel Depth (m)"),
                 ("Area_sqm", "DOUBLE", 0, "Calculated Area (sq m)"),
                 ("ParcelType", "TEXT", 30, "Parcel Classification"),
@@ -146,17 +148,27 @@ namespace ParcelBuilder.AddIn.Services
                     rowBuffer[shapeFieldName] = polygon;
 
                     bool isElectricRoom = parcel.Type == "Electric Room" || parcel.Id == "ER-01";
+                    bool isThroughParcel = parcel.Side == ParcelSide.Both || parcel.Type == "Through Parcel";
+                    string sideStr = isThroughParcel ? "Side A & Side B" : parcel.Side.ToString();
+                    string streetLabelStr = isThroughParcel
+                        ? $"{config.SideA.StreetLabel} & {config.SideB.StreetLabel}"
+                        : (parcel.Side == ParcelSide.SideA ? config.SideA.StreetLabel : config.SideB.StreetLabel);
+
+                    double frontageA = (parcel.Side == ParcelSide.SideA || isThroughParcel) ? Math.Round(parcel.Frontage, 2) : 0.0;
+                    double frontageB = (parcel.Side == ParcelSide.SideB || isThroughParcel) ? Math.Round(parcel.Frontage, 2) : 0.0;
 
                     SetRowValue(rowBuffer, fcDef, "ParcelID", parcel.Id);
-                    SetRowValue(rowBuffer, fcDef, "FeatureType", isElectricRoom ? "ElectricRoom" : "Parcel");
-                    SetRowValue(rowBuffer, fcDef, "Side", parcel.Side.ToString());
+                    SetRowValue(rowBuffer, fcDef, "FeatureType", isElectricRoom ? "ElectricRoom" : (isThroughParcel ? "ThroughParcel" : "Parcel"));
+                    SetRowValue(rowBuffer, fcDef, "Side", sideStr);
                     SetRowValue(rowBuffer, fcDef, "Sequence", parcel.Sequence);
                     SetRowValue(rowBuffer, fcDef, "Frontage", Math.Round(parcel.Frontage, 2));
+                    SetRowValue(rowBuffer, fcDef, "FrontageA", frontageA);
+                    SetRowValue(rowBuffer, fcDef, "FrontageB", frontageB);
                     SetRowValue(rowBuffer, fcDef, "Depth", Math.Round(parcel.Depth, 2));
                     SetRowValue(rowBuffer, fcDef, "Area_sqm", Math.Round(parcel.Area, 2));
                     SetRowValue(rowBuffer, fcDef, "ParcelType", parcel.Type);
                     SetRowValue(rowBuffer, fcDef, "IsCorner", parcel.IsCorner ? (short)1 : (short)0);
-                    SetRowValue(rowBuffer, fcDef, "StreetLabel", parcel.Side == ParcelSide.SideA ? config.SideA.StreetLabel : config.SideB.StreetLabel);
+                    SetRowValue(rowBuffer, fcDef, "StreetLabel", streetLabelStr);
 
                     if (isElectricRoom && erConfig != null)
                     {

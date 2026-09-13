@@ -51,6 +51,7 @@ namespace ParcelBuilder.Core.Models
         public CornerConfiguration Corner { get; set; } = new CornerConfiguration();
         public ElectricRoomConfiguration ElectricRoom { get; set; } = new ElectricRoomConfiguration();
         public AlignmentConfiguration Alignment { get; set; } = new AlignmentConfiguration();
+        public ParcelSplitMergeConfiguration SplitMerge { get; set; } = new ParcelSplitMergeConfiguration();
 
         // Computed Dimensions Summary
         public double EstimatedBlockLength { get; set; }
@@ -74,6 +75,16 @@ namespace ParcelBuilder.Core.Models
                 Corner = this.Corner?.Clone() ?? new CornerConfiguration(),
                 ElectricRoom = this.ElectricRoom?.Clone() ?? new ElectricRoomConfiguration(),
                 Alignment = this.Alignment?.Clone() ?? new AlignmentConfiguration(),
+                SplitMerge = new ParcelSplitMergeConfiguration
+                {
+                    Mode = this.SplitMerge?.Mode ?? SplitMergeMode.SplitParcel,
+                    SelectedParcelId = this.SplitMerge?.SelectedParcelId ?? string.Empty,
+                    SplitDirection = this.SplitMerge?.SplitDirection ?? SplitDirection.AlongFrontage,
+                    SplitMethod = this.SplitMerge?.SplitMethod ?? SplitMethod.EqualSplit,
+                    SplitPosition = this.SplitMerge?.SplitPosition ?? 10.0,
+                    MergeParcelId1 = this.SplitMerge?.MergeParcelId1 ?? string.Empty,
+                    MergeParcelId2 = this.SplitMerge?.MergeParcelId2 ?? string.Empty
+                },
                 EstimatedBlockLength = this.EstimatedBlockLength,
                 EstimatedBlockDepth = this.EstimatedBlockDepth,
                 EstimatedBlockArea = this.EstimatedBlockArea,
@@ -88,7 +99,7 @@ namespace ParcelBuilder.Core.Models
         /// </summary>
         public double GetEffectiveFrontage(ParcelSide side, int sequence)
         {
-            var ex = Exceptions.FirstOrDefault(e => e.Side == side && e.Sequence == sequence);
+            var ex = Exceptions.FirstOrDefault(e => (e.Side == side || e.Side == ParcelSide.Both) && e.Sequence == sequence);
             return (ex != null && ex.CustomFrontage.HasValue) ? ex.CustomFrontage.Value : BaseParcel.Frontage;
         }
 
@@ -97,7 +108,7 @@ namespace ParcelBuilder.Core.Models
         /// </summary>
         public double GetEffectiveDepth(ParcelSide side, int sequence)
         {
-            var ex = Exceptions.FirstOrDefault(e => e.Side == side && e.Sequence == sequence);
+            var ex = Exceptions.FirstOrDefault(e => (e.Side == side || e.Side == ParcelSide.Both) && e.Sequence == sequence);
             return (ex != null && ex.CustomDepth.HasValue) ? ex.CustomDepth.Value : BaseParcel.Depth;
         }
     }

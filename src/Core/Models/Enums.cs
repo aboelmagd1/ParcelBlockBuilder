@@ -125,7 +125,8 @@ namespace ParcelBuilder.Core.Models
     public enum ParcelSide
     {
         SideA = 0,
-        SideB = 1
+        SideB = 1,
+        Both = 2
     }
 
     /// <summary>

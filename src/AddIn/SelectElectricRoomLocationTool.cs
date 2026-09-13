@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Framework;
@@ -35,11 +35,18 @@ namespace ParcelBuilder.AddIn
         {
             if (geometry is not MapPoint clickPoint) return false;
 
-            var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
-            if (dockPane != null)
+            try
             {
-                dockPane.Activate();
-                await dockPane.OnElectricRoomMapClickedAsync(clickPoint);
+                var dockPane = FrameworkApplication.DockPaneManager.Find("ParcelBuilder_DockPane") as ParcelBuilderDockPaneViewModel;
+                if (dockPane != null)
+                {
+                    dockPane.Activate();
+                    await dockPane.OnElectricRoomMapClickedAsync(clickPoint);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SelectElectricRoomLocationTool notice: {ex.Message}");
             }
 
             return true;

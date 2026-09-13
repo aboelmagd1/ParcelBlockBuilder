@@ -184,5 +184,83 @@ namespace ParcelBuilder.Tests
             er.Depth = 4.00;
             Assert.Equal(14.00, er.Area); // 3.50 * 4.00 = 14.00 m²
         }
+
+        [Fact]
+        public void ElectricRoom_DefaultConfiguration_HasZeroOffsetAndTopLeftAnchor()
+        {
+            var er = new ElectricRoomConfiguration();
+            Assert.Equal(0.0, er.OffsetDistance);
+            Assert.Equal(ElectricRoomAnchorPoint.TopLeft, er.RoomAnchor);
+        }
+
+        [Theory]
+        [InlineData(ElectricRoomAnchorPoint.TopLeft, 20.0, 20.0, 22.5)]
+        [InlineData(ElectricRoomAnchorPoint.Center, 20.0, 18.75, 21.25)]
+        [InlineData(ElectricRoomAnchorPoint.TopRight, 20.0, 17.5, 20.0)]
+        public void ElectricRoom_AnchorPoints_AlignCorrectly(ElectricRoomAnchorPoint anchor, double offset, double expectedX1, double expectedX2)
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 5;
+            config.SideB.ParcelCount = 5;
+            config.BaseParcel.Frontage = 20.0;
+            config.BaseParcel.Depth = 30.0;
+            config.Corner.HasChamfer = false;
+
+            config.ElectricRoom = new ElectricRoomConfiguration
+            {
+                HasElectricRoom = true,
+                Width = 2.50,
+                Depth = 5.00,
+                Side = ParcelSide.SideA,
+                PlacementMethod = ElectricRoomPlacementMethod.OffsetDistance,
+                OffsetDistance = offset,
+                RoomAnchor = anchor,
+                ClipHostParcels = true
+            };
+
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            var er = config.SideA.GeneratedParcels.FirstOrDefault(p => p.Id == "ER-01");
+            Assert.NotNull(er);
+            double minX = er.PolygonRing.Min(pt => pt.X);
+            double maxX = er.PolygonRing.Max(pt => pt.X);
+            Assert.Equal(expectedX1, minX, 2);
+            Assert.Equal(expectedX2, maxX, 2);
+        }
+
+        [Fact]
+        public void ElectricRoom_WithCornerChamfer_DefaultOffsetZero_StartsAtStreetFrontageAfterChamfer()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 5;
+            config.SideB.ParcelCount = 5;
+            config.BaseParcel.Frontage = 20.0;
+            config.BaseParcel.Depth = 30.0;
+            config.Corner.HasChamfer = true;
+            config.Corner.IsCustomPerCorner = true;
+            config.Corner.CornerAStart.IsEnabled = true;
+            config.Corner.CornerAStart.Mode = ChamferMode.StreetSetbacks;
+            config.Corner.CornerAStart.MainStreetSetback = 5.0;
+            config.Corner.CornerAStart.CrossStreetSetback = 5.0;
+
+            config.ElectricRoom = new ElectricRoomConfiguration
+            {
+                HasElectricRoom = true,
+                Width = 2.50,
+                Depth = 5.00,
+                Side = ParcelSide.SideA,
+                PlacementMethod = ElectricRoomPlacementMethod.OffsetDistance,
+                OffsetDistance = 0.0,
+                ClipHostParcels = true
+            };
+
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            var er = config.SideA.GeneratedParcels.FirstOrDefault(p => p.Id == "ER-01");
+            Assert.NotNull(er);
+            Assert.True(config.ElectricRoom.IsPlacementValid);
+            Assert.Equal(5.0, er.PolygonRing.Min(pt => pt.X), 2);
+            Assert.Equal(7.5, er.PolygonRing.Max(pt => pt.X), 2);
+        }
     }
 }

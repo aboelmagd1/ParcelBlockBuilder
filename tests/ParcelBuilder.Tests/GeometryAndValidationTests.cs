@@ -261,5 +261,114 @@ namespace ParcelBuilder.Tests
             Assert.True(alignRule.Passed);
             Assert.Contains("45.0°", alignRule.Details);
         }
+
+        [Fact]
+        public void ParcelDimensionOverride_ModifiesOnlyTargetParcel_LeavesOtherParcelsUntouched()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 4;
+            config.SideB.ParcelCount = 4;
+            config.BaseParcel.Frontage = 20.0;
+            config.BaseParcel.Depth = 30.0;
+            config.Arrangement = ArrangementMode.BackToBack;
+            config.Corner.HasChamfer = false;
+
+            // Apply custom override to A-02 only: Frontage 35m, Depth 40m
+            config.Exceptions.Add(new ParcelException
+            {
+                Side = ParcelSide.SideA,
+                Sequence = 2,
+                CustomFrontage = 35.0,
+                CustomDepth = 40.0,
+                CustomType = "Modified"
+            });
+
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            // Verify Side A parcels
+            var a01 = config.SideA.GeneratedParcels.First(p => p.Id == "A-01");
+            var a02 = config.SideA.GeneratedParcels.First(p => p.Id == "A-02");
+            var a03 = config.SideA.GeneratedParcels.First(p => p.Id == "A-03");
+            var a04 = config.SideA.GeneratedParcels.First(p => p.Id == "A-04");
+
+            // A-01 must remain strictly base dimensions
+            Assert.Equal(20.0, a01.Frontage);
+            Assert.Equal(30.0, a01.Depth);
+            Assert.Equal(600.0, a01.Area);
+            Assert.False(a01.IsModified);
+
+            // A-02 must reflect the exact customized dimensions
+            Assert.Equal(35.0, a02.Frontage);
+            Assert.Equal(40.0, a02.Depth);
+            Assert.Equal(1400.0, a02.Area);
+            Assert.True(a02.IsModified);
+
+            // A-03 and A-04 must remain strictly base dimensions
+            Assert.Equal(20.0, a03.Frontage);
+            Assert.Equal(30.0, a03.Depth);
+            Assert.Equal(600.0, a03.Area);
+            Assert.False(a03.IsModified);
+
+            Assert.Equal(20.0, a04.Frontage);
+            Assert.Equal(30.0, a04.Depth);
+            Assert.Equal(600.0, a04.Area);
+            Assert.False(a04.IsModified);
+
+            // All Side B parcels must remain strictly base dimensions
+            foreach (var p in config.SideB.GeneratedParcels)
+            {
+                Assert.Equal(20.0, p.Frontage);
+                Assert.Equal(30.0, p.Depth);
+                Assert.Equal(600.0, p.Area);
+                Assert.False(p.IsModified);
+            }
+        }
+
+        [Fact]
+        public void ParcelDimensionOverride_SideBTarget_DoesNotAffectSideA()
+        {
+            var config = new BlockConfiguration();
+            config.SideA.ParcelCount = 3;
+            config.SideB.ParcelCount = 3;
+            config.BaseParcel.Frontage = 20.0;
+            config.BaseParcel.Depth = 30.0;
+            config.Arrangement = ArrangementMode.BackToBack;
+            config.Corner.HasChamfer = false;
+
+            // Apply custom override to B-02 only: Frontage 28m
+            config.Exceptions.Add(new ParcelException
+            {
+                Side = ParcelSide.SideB,
+                Sequence = 2,
+                CustomFrontage = 28.0,
+                CustomType = "Modified"
+            });
+
+            ParcelGeometryEngine.Instance.GenerateGeometry(config);
+
+            // Side A must be entirely unchanged
+            foreach (var p in config.SideA.GeneratedParcels)
+            {
+                Assert.Equal(20.0, p.Frontage);
+                Assert.Equal(30.0, p.Depth);
+                Assert.Equal(600.0, p.Area);
+                Assert.False(p.IsModified);
+            }
+
+            // Side B: B-01 and B-03 are 20m, B-02 is 28m
+            var b01 = config.SideB.GeneratedParcels.First(p => p.Id == "B-01");
+            var b02 = config.SideB.GeneratedParcels.First(p => p.Id == "B-02");
+            var b03 = config.SideB.GeneratedParcels.First(p => p.Id == "B-03");
+
+            Assert.Equal(20.0, b01.Frontage);
+            Assert.False(b01.IsModified);
+
+            Assert.Equal(28.0, b02.Frontage);
+            Assert.Equal(840.0, b02.Area);
+            Assert.True(b02.IsModified);
+
+            Assert.Equal(20.0, b03.Frontage);
+            Assert.False(b03.IsModified);
+        }
     }
 }

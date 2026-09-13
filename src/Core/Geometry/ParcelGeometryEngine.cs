@@ -47,6 +47,43 @@ namespace ParcelBuilder.Core.Geometry
                 bool hasChamfer = isStartCorner || isEndCorner || isCustomChamfer;
                 bool isCorner = (i == 1) || (i == countA);
 
+                var throughEx = config.Exceptions.FirstOrDefault(e => (e.Side == ParcelSide.Both || e.CustomType == "Through Parcel") && e.Sequence == i);
+                if (throughEx != null && config.Arrangement == ArrangementMode.BackToBack)
+                {
+                    double depthA = config.GetEffectiveDepth(ParcelSide.SideA, i);
+                    double depthB = config.GetEffectiveDepth(ParcelSide.SideB, i);
+                    var throughRing = new List<Point2D>
+                    {
+                        new Point2D(currentX, -depthB),
+                        new Point2D(currentX, depthA),
+                        new Point2D(currentX + frontage, depthA),
+                        new Point2D(currentX + frontage, -depthB)
+                    };
+                    double tArea = frontage * (depthA + depthB);
+                    var throughParcel = new ParcelModel
+                    {
+                        Id = $"A-{i:D2}/B-{i:D2}",
+                        Side = ParcelSide.Both,
+                        Sequence = i,
+                        Frontage = frontage,
+                        Depth = depthA + depthB,
+                        Area = Math.Round(tArea, 2),
+                        IsCorner = false,
+                        HasChamfer = false,
+                        HasStreetFrontage = true,
+                        IsModified = true,
+                        Type = "Through Parcel",
+                        PolygonRing = throughRing,
+                        Centroid = new Point2D(currentX + frontage / 2.0, (depthA - depthB) / 2.0)
+                    };
+
+                    config.SideA.GeneratedParcels.Add(throughParcel);
+                    currentX += frontage;
+                    sideATotalFrontage += frontage;
+                    sideATotalArea += tArea / 2.0;
+                    continue;
+                }
+
                 var ring = BuildParcelRing(
                     originX: currentX,
                     originY: 0.0,
@@ -99,6 +136,16 @@ namespace ParcelBuilder.Core.Geometry
                     double frontage = config.GetEffectiveFrontage(ParcelSide.SideB, i);
                     double depth = config.GetEffectiveDepth(ParcelSide.SideB, i);
                     string parcelId = $"B-{i:D2}";
+
+                    var throughParcel = config.SideA.GeneratedParcels.FirstOrDefault(p => (p.Side == ParcelSide.Both || p.Type == "Through Parcel") && p.Sequence == i);
+                    if (throughParcel != null)
+                    {
+                        config.SideB.GeneratedParcels.Add(throughParcel);
+                        currentX += frontage;
+                        sideBTotalFrontage += frontage;
+                        sideBTotalArea += throughParcel.Area / 2.0;
+                        continue;
+                    }
 
                     bool isStartCorner = (i == 1) && config.Corner.HasChamfer && cornerBStart.IsEnabled;
                     bool isEndCorner = (i == countB) && config.Corner.HasChamfer && cornerBEnd.IsEnabled;
@@ -176,23 +223,72 @@ namespace ParcelBuilder.Core.Geometry
 
             double totalFrontage = targetSide == ParcelSide.SideA ? config.SideA.TotalFrontage : config.SideB.TotalFrontage;
 
-            // Determine Electric Room X position along street frontage
-            double erX1 = 0.0;
+            // Determine Electric Room X position along street frontage based on RoomAnchor
+            double targetX = erConfig.OffsetDistance;
             if (erConfig.PlacementMethod == ElectricRoomPlacementMethod.InteractiveMapPlacement &&
                 erConfig.ClickedMapX.HasValue && erConfig.ClickedMapY.HasValue)
             {
                 var (localX, _) = ProjectMapPointToLocal(erConfig.ClickedMapX.Value, erConfig.ClickedMapY.Value, config);
-                erX1 = localX - (erWidth / 2.0);
-                erConfig.OffsetDistance = Math.Round(erX1, 2);
-                erConfig.AnchorPoint = new Point2D(localX, yStreet);
+                targetX = localX;
+                erConfig.OffsetDistance = Math.Round(targetX, 2);
+            }
+
+            // If offset distance is 0.0 and corner has a chamfer, automatically start at the beginning of the street frontage (after the chamfer)
+            double startCutX = 0.0;
+            if (config.Corner != null && config.Corner.HasChamfer)
+            {
+                var cStart = isSideA
+                    ? config.Corner.GetEffectiveCorner(CornerPosition.SideAStart)
+                    : config.Corner.GetEffectiveCorner(CornerPosition.SideBStart);
+                if (cStart.IsEnabled)
+                {
+                    var firstP = parcelsList.FirstOrDefault();
+                    var (cutX, _) = cStart.GetEffectiveCutDistances(firstP?.Frontage ?? 10.0, depth);
+                    startCutX = cutX;
+                }
+            }
+
+            if (erConfig.PlacementMethod == ElectricRoomPlacementMethod.OffsetDistance && erConfig.OffsetDistance < 1e-4 && startCutX > 0)
+            {
+                targetX = startCutX;
+            }
+
+            double erX1 = erConfig.RoomAnchor switch
+            {
+                ElectricRoomAnchorPoint.TopRight or ElectricRoomAnchorPoint.BottomRight => targetX - erWidth,
+                ElectricRoomAnchorPoint.Center => targetX - (erWidth / 2.0),
+                _ => targetX // TopLeft or BottomLeft
+            };
+
+            double erX2 = erX1 + erWidth;
+
+            // Set 2D AnchorPoint according to RoomAnchor
+            erConfig.AnchorPoint = erConfig.RoomAnchor switch
+            {
+                ElectricRoomAnchorPoint.TopRight => new Point2D(erX2, yStreet),
+                ElectricRoomAnchorPoint.Center => new Point2D((erX1 + erX2) / 2.0, (yStreet + yInner) / 2.0),
+                ElectricRoomAnchorPoint.BottomLeft => new Point2D(erX1, yInner),
+                ElectricRoomAnchorPoint.BottomRight => new Point2D(erX2, yInner),
+                _ => new Point2D(erX1, yStreet) // TopLeft
+            };
+
+            // Build Electric Room Polygon Ring early so it is always available for display
+            var erRing = new List<Point2D>();
+            if (isSideA)
+            {
+                erRing.Add(new Point2D(erX1, yInner));
+                erRing.Add(new Point2D(erX1, yStreet));
+                erRing.Add(new Point2D(erX2, yStreet));
+                erRing.Add(new Point2D(erX2, yInner));
             }
             else
             {
-                erX1 = Math.Max(0.0, erConfig.OffsetDistance);
-                erConfig.AnchorPoint = new Point2D(erX1 + (erWidth / 2.0), yStreet);
+                erRing.Add(new Point2D(erX1, yInner));
+                erRing.Add(new Point2D(erX2, yInner));
+                erRing.Add(new Point2D(erX2, yStreet));
+                erRing.Add(new Point2D(erX1, yStreet));
             }
-
-            double erX2 = erX1 + erWidth;
+            erConfig.PolygonRing = erRing.Select(p => new Point2D(p.X, p.Y)).ToList();
 
             // 1. IMPORTANT GEOMETRY RULE: Strict Block Boundary Containment Check
             // Electric room must not extend outside the block boundary or into chamfer cuts
@@ -240,7 +336,7 @@ namespace ParcelBuilder.Core.Geometry
                 erConfig.ValidationStatusMessage = "Electric Room cannot be placed here because the configured footprint extends outside the block boundary.";
                 erConfig.PlacementType = ElectricRoomPlacementType.InvalidOutsideBlock;
                 erConfig.HostParcelIds.Clear();
-                erConfig.PolygonRing.Clear();
+                // Preserve erConfig.PolygonRing so preview can still display its location
                 return;
             }
 
@@ -280,28 +376,9 @@ namespace ParcelBuilder.Core.Geometry
                 erConfig.IsPlacementValid = false;
                 erConfig.ValidationStatusMessage = "Electric Room placement is invalid (must be inside one parcel or between two adjacent parcels).";
                 erConfig.HostParcelIds.Clear();
-                erConfig.PolygonRing.Clear();
+                // Preserve erConfig.PolygonRing so UI preview can display it
                 return;
             }
-
-            // 3. Build Electric Room Polygon Ring (oriented along street vector)
-            var erRing = new List<Point2D>();
-            if (isSideA)
-            {
-                erRing.Add(new Point2D(erX1, yInner));
-                erRing.Add(new Point2D(erX1, yStreet));
-                erRing.Add(new Point2D(erX2, yStreet));
-                erRing.Add(new Point2D(erX2, yInner));
-            }
-            else
-            {
-                erRing.Add(new Point2D(erX1, yInner));
-                erRing.Add(new Point2D(erX2, yInner));
-                erRing.Add(new Point2D(erX2, yStreet));
-                erRing.Add(new Point2D(erX1, yStreet));
-            }
-
-            erConfig.PolygonRing = erRing.Select(p => new Point2D(p.X, p.Y)).ToList();
 
             // 4. Clip / Carve host parcel(s) if enabled
             if (erConfig.ClipHostParcels)
